@@ -1,15 +1,28 @@
 (defproject repl-ui "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojure/clojurescript "1.9.946"]
-                 [org.clojure/core.async "0.4.474"]
-                 [reagent "0.7.0"]
-                 [re-frame "0.10.5"]
-                 [com.andrewmcveigh/cljs-time "0.5.2"]
-                 [re-com "2.1.0"]]
-
-  :plugins [[lein-cljsbuild "1.1.5"]]
 
   :min-lein-version "2.5.3"
+
+  :global-vars {*warn-on-reflection* true
+                *assert*             true}
+
+  :dependencies [[org.clojure/clojure "1.10.0-alpha4"]
+                 [org.clojure/clojurescript "1.10.191"]
+                 [org.clojure/core.async "0.4.474"]
+                 [org.clojure/tools.logging "0.4.0"]
+                 [com.taoensso/sente "1.12.0"]
+                 [com.taoensso/timbre "4.10.0"]
+                 [com.cognitect/transit-cljs "0.8.243"]
+                 [binaryage/oops "0.5.8"]
+                 [parinfer-cljs "1.5.1-0"]
+                 [reagent "0.7.0"]
+                 [re-frame "0.10.5"]
+                 [re-com "2.1.0"]
+                 [day8.re-frame/async-flow-fx "0.0.8"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]]
+
+  :plugins [[lein-pprint "1.2.0"]
+            [lein-ancient "0.6.14"]
+            [lein-cljsbuild "1.1.7"]]
 
   :source-paths ["src/clj"]
 
@@ -20,7 +33,6 @@
   :profiles
   {:dev
    {:dependencies [[binaryage/devtools "0.9.4"]]
-
     :plugins      [[lein-figwheel "0.5.13"]]}}
 
   :cljsbuild
@@ -34,8 +46,7 @@
                     :asset-path           "js/compiled/out"
                     :source-map-timestamp true
                     :preloads             [devtools.preload]
-                    :external-config      {:devtools/config {:features-to-install :all}}
-                    }}
+                    :external-config      {:devtools/config {:features-to-install :all}}}}
 
     {:id           "min"
      :source-paths ["src/cljs"]
@@ -43,9 +54,4 @@
                     :output-to       "resources/public/js/compiled/app.js"
                     :optimizations   :advanced
                     :closure-defines {goog.DEBUG false}
-                    :pretty-print    false}}
-
-
-    ]}
-
-  )
+                    :pretty-print    false}}]})

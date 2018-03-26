@@ -2,14 +2,8 @@
   (:require [reagent.core :as reagent]
             [re-frame.core :as re-frame]
             [repl-ui.events :as events]
-            [repl-ui.views :as views]
-            [repl-ui.config :as config]))
+            [repl-ui.views :as views]))
 
-
-(defn dev-setup []
-  (when config/debug?
-    (enable-console-print!)
-    (println "dev mode")))
 
 (defn mount-root []
   (re-frame/clear-subscription-cache!)
@@ -17,6 +11,7 @@
                   (.getElementById js/document "app")))
 
 (defn ^:export init []
+  ;   (dispatch-sync [::events/boot])
+
   (re-frame/dispatch-sync [::events/initialize-db])
-  (dev-setup)
   (mount-root))
