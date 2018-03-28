@@ -142,7 +142,7 @@
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form]]
-    (let [newlines? (not= nil (re-find #"\n" current-form))
+    (let [newlines? (not= nil (re-find #"\n" current-form)) ; HACK!!!
           inferred-form (when newlines? (paren-mode current-form))
           parinfer-form (when (:success? inferred-form) (:text inferred-form))]
       {:db                 (assoc db :current-form current-form

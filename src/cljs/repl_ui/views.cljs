@@ -1,6 +1,6 @@
 (ns repl-ui.views
   (:require [re-frame.core :as re-frame]
-            [re-com.core :refer [h-box v-box box button gap line scroller border label input-text
+            [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-icon-button
                                  input-textarea h-split v-split title flex-child-style p]]
             [re-com.splits :refer [hv-split-args-desc]]
             [repl-ui.events :as events]
@@ -11,13 +11,20 @@
                     :border      "1px solid lightgray"
                     :padding     "10px 20px 0px 20px"})
 
-(def panel-style (merge (flex-child-style "1")
-                        default-style {:background-color "#e8e8e8"}))
+(def panel-style (merge (flex-child-style "1") default-style
+                        {:background-color "#e8e8e8"}))
 
-(def input-style (merge (flex-child-style "1")
-                        default-style {:resize "none"}))
+(def input-style (merge (flex-child-style "1") default-style
+                        {:resize "none"}))
 
-(def eval-style (merge (flex-child-style "1") default-style))
+(def eval-panel-style (merge (flex-child-style "1") default-style))
+
+(def eval-content-style (merge (flex-child-style "1")
+                               {:resize    "none"
+                                :flex-flow "column-reverse nowrap"
+                                :padding   "10px 10px 10px 10px"}))
+
+(def history-style {:padding "5px 5px 0px 10px"})
 
 (defn splitter-panel-title [text]
   [title :label text :level :level3 :style {:margin-top "20px"}])
@@ -32,46 +39,51 @@
 
 (defn format-result [result]
   (let [form (or (first (edn/read-string (:pretty result))) (:form result))]
-    (list [label :label form]
-          [label :label (str "=> " (:val result)) :on-click #(js/alert result)]
-          [gap :size "10px"])))
+    [v-box :size "auto" :children
+     [[label :label form]
+      [label :label (str "=> " (:val result)) :on-click #(js/alert result)]
+      [gap :size "20px"]]]))
+
 
 (defn eval-panel []
   (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
-    [scroller :child
-     ; TODO make CSS dynamic so that we don't lose it when scrolling
-     [box :size "auto" :child
-      [:div {:style eval-style}
-       (when eval-results
-         [v-box :size "auto" :children
-          (map format-result eval-results)])]]]))
+    [scroller :style eval-panel-style :child
+     [box :style eval-content-style :size "auto" :child
+      [:div (when eval-results [v-box :size "auto" :children
+                                (map format-result eval-results)])]]]))
+
+(defn format-history [historical-form]
+  [md-icon-button :md-icon-name "zmdi-caret-up-circle" :tooltip historical-form
+   :on-click #(re-frame/dispatch [::events/current-form historical-form])])
 
 (defn edit-panel [panel-name]
   (let [user-name @(re-frame/subscribe [::subs/user-name])
-        parinfer-form @(re-frame/subscribe [::subs/parinfer-form])]
-    [scroller :child
-     [v-box :size "auto" :children
-      [[box :size "auto" :child
+        parinfer-form @(re-frame/subscribe [::subs/parinfer-form])
+        eval-results @(re-frame/subscribe [::subs/eval-results])]
+    [v-box :size "auto" :children
+     [[box :size "auto" :child
+       [scroller :child
         [:textarea {:id          panel-name
                     :placeholder (str "(your clojure here) - " user-name)
-                    :size        "0 0 5000px"
                     :style       input-style
-                    ;; check for cmd-enter to send to server
+                    ;; TODO: check for cmd-enter to also send to server for eval
                     :on-change   #(re-frame/dispatch
                                     [::events/current-form (-> % .-currentTarget .-value)])
-                    :value       parinfer-form}]]
-
-       [button :label "Eval"
-        :on-click #(re-frame/dispatch
-                     [::events/eval (.-value (.getElementById js/document panel-name))])]]]]))
+                    :value       parinfer-form}]]]
+      [h-box :children
+       [[button :label "Eval" :on-click
+         #(re-frame/dispatch [::events/eval (.-value (.getElementById js/document panel-name))])]
+        [gap :size "30px"]
+        (when eval-results                                  ; visualise and give access to history
+          [h-box :size "auto" :align :center :style history-style :children
+           (reverse (map format-history (distinct (map :original-form eval-results))))])]]]]))
 
 (defn login-panel []
   [h-box :size "auto" :children
    [[input-text :model "" :placeholder "user-name" :style input-style :attr {:id "login-panel"}
      :on-change #(-> nil)]
-    [button :label "Login"
-     :on-click #(re-frame/dispatch
-                  [::events/login (.-value (.getElementById js/document "login-panel"))])]]])
+    [button :label "Login" :on-click
+     #(re-frame/dispatch [::events/login (.-value (.getElementById js/document "login-panel"))])]]])
 
 (defn box-panels []
   (let [user-name @(re-frame/subscribe [::subs/user-name])
