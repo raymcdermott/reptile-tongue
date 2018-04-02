@@ -4,7 +4,7 @@
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
     [repl-ui.db :as db]
     [clojure.string :as str]
-    [parinfer-cljs.core :refer [indent-mode paren-mode]]
+    [parinfer-cljs.core :as parinfer]
     [cljs.core.async :as async :refer (<! >! put! chan go go-loop)]
     [taoensso.encore :as encore :refer (have have?)]
     [taoensso.timbre :as timbre :refer (tracef debugf infof warnf errorf)]
@@ -131,6 +131,20 @@
   (fn [_ _]
     db/default-db))
 
+;; Keys -- very simple, only handle one modifier key (Cmd)
+
+(reg-event-db
+  ::key-down
+  (fn [db [_ key-code]]
+    (assoc db :key-down key-code)))
+
+(reg-event-db
+  ::key-up
+  (fn [db [_ _]]
+    (dissoc db :key-down)))
+
+;; Text
+
 (reg-fx
   ::send-current-form
   (fn [{:keys [current-form user-name timeout]}]
@@ -139,12 +153,25 @@
         [:reptile/keystrokes {:form current-form :user-name user-name}]
         (or timeout 3000)))))
 
+(reg-event-db
+  ::update-status
+  (fn [db [_ status]]
+    (assoc db :status status)))
+
+
+
+(defn apply-parinfer
+  [{:keys [text success? error] :as parinfer-result}]
+  (if success?
+    text
+    (do (re-frame/dispatch [::update-status (:message error)])
+        text)))
+
 (reg-event-fx
   ::current-form
-  (fn [{:keys [db]} [_ current-form]]
-    (let [newlines? (not= nil (re-find #"\n" current-form)) ; HACK!!!
-          inferred-form (when newlines? (paren-mode current-form))
-          parinfer-form (when (:success? inferred-form) (:text inferred-form))]
+  (fn [{:keys [db]} [_ current-form cursor-line cursor-pos]]
+    (let [parinfer-form (apply-parinfer (parinfer/paren-mode current-form {:cursor-line cursor-line
+                                                                            :cursor-x    cursor-pos}))]
       {:db                 (assoc db :current-form current-form
                                      :parinfer-form (or parinfer-form current-form))
        ::send-current-form {:current-form current-form :user-name (:user-name db)}})))

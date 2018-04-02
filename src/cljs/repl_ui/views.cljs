@@ -26,6 +26,9 @@
 
 (def history-style {:padding "5px 5px 0px 10px"})
 
+(def status-style (merge default-style {:color "lightgrey"}))
+
+
 (defn splitter-panel-title [text]
   [title :label text :level :level3 :style {:margin-top "20px"}])
 
@@ -56,27 +59,54 @@
   [md-icon-button :md-icon-name "zmdi-caret-up-circle" :tooltip historical-form
    :on-click #(re-frame/dispatch [::events/current-form historical-form])])
 
+;(defn- convert-options [option]
+;  #js {:cursorX (:cursor-x option)
+;       :cursorLine (:cursor-line option)
+;       :cursorDx (:cursor-dx option)})
+
 (defn edit-panel [panel-name]
-  (let [user-name @(re-frame/subscribe [::subs/user-name])
+  (let [user-name     @(re-frame/subscribe [::subs/user-name])
         parinfer-form @(re-frame/subscribe [::subs/parinfer-form])
-        eval-results @(re-frame/subscribe [::subs/eval-results])]
+        key-down      @(re-frame/subscribe [::subs/key-down])
+        eval-results  @(re-frame/subscribe [::subs/eval-results])]
     [v-box :size "auto" :children
      [[box :size "auto" :child
        [scroller :child
-        [:textarea {:id          panel-name
-                    :placeholder (str "(your clojure here) - " user-name)
-                    :style       input-style
-                    ;; TODO: check for cmd-enter to also send to server for eval
-                    :on-change   #(re-frame/dispatch
-                                    [::events/current-form (-> % .-currentTarget .-value)])
-                    :value       parinfer-form}]]]
+        [:textarea {:id           panel-name
+                    :placeholder  (str "(your clojure here) - " user-name)
+                    :style        input-style
+
+
+                    ;; Dispatch on Alt-Enter
+                    :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
+                    :on-key-up    #(re-frame/dispatch [::events/key-up (.-which %)])
+                    :on-key-press #(when (and (= (.-which %) 13) (= key-down 18))
+                                     (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)]))
+
+                    :on-change    #(let [current-value   (-> % .-currentTarget .-value)
+                                         selection-start (-> % .-currentTarget .-selectionStart)
+                                         line-no         (dec (count (.split
+                                                                       (.substring current-value 0 selection-start)
+                                                                       "\n")))
+                                         cursor-pos      (count (last (.split
+                                                                        (.substring current-value 0 selection-start)
+                                                                        "\n")))]
+                                     (re-frame/dispatch [::events/current-form current-value line-no cursor-pos]))
+                    ;:value        parinfer-form
+                    }]]]
       [h-box :children
-       [[button :label "Eval" :on-click
+       [[button :label "Eval (or Alt-Enter)" :on-click
          #(re-frame/dispatch [::events/eval (.-value (.getElementById js/document panel-name))])]
         [gap :size "30px"]
         (when eval-results                                  ; visualise and give access to history
           [h-box :size "auto" :align :center :style history-style :children
            (reverse (map format-history (distinct (map :original-form eval-results))))])]]]]))
+
+(defn status-bar
+  []
+  (let [status @(re-frame/subscribe [::subs/status])]
+    [box :size "40px" :style status-style :child
+     [label :label (str "Edit Status: " (or status "OK"))]]))
 
 (defn login-panel []
   [h-box :size "auto" :children
@@ -86,7 +116,7 @@
      #(re-frame/dispatch [::events/login (.-value (.getElementById js/document "login-panel"))])]]])
 
 (defn box-panels []
-  (let [user-name @(re-frame/subscribe [::subs/user-name])
+  (let [user-name     @(re-frame/subscribe [::subs/user-name])
         other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
     [h-split :margin "2px"
      :panel-1 [v-split
@@ -99,7 +129,8 @@
                :panel-2 [read-input-panel (or (nth other-editors 2 "2"))]]]))
 
 (defn main-panel []
-  [v-box :height "800px" :children
+  [v-box :height "1000px" :children
    [[v-split :splitter-size "3px" :initial-split "60%"
      :panel-1 [eval-panel]
-     :panel-2 [box-panels]]]])
+     :panel-2 [box-panels]]
+    (status-bar)]])

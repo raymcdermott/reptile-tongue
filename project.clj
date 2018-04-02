@@ -6,14 +6,16 @@
                 *assert*             true}
 
   :dependencies [[org.clojure/clojure "1.10.0-alpha4"]
-                 [org.clojure/clojurescript "1.10.191"]
+                 [org.clojure/clojurescript "1.10.238"]
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/tools.logging "0.4.0"]
                  [com.taoensso/sente "1.12.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.cognitect/transit-cljs "0.8.243"]
                  [binaryage/oops "0.5.8"]
-                 [parinfer-cljs "1.5.1-0"]
+                 [parinfer-cljs "3.11.0-0"]
+                 [cljsjs/rangy-core "1.3.0-1"]
+                 [cljsjs/rangy-textrange "1.3.0-1"]
                  [reagent "0.7.0"]
                  [re-frame "0.10.5"]
                  [re-com "2.1.0"]
@@ -23,8 +25,6 @@
   :plugins [[lein-pprint "1.2.0"]
             [lein-ancient "0.6.14"]
             [lein-cljsbuild "1.1.7"]]
-
-  :source-paths ["src/clj"]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
 

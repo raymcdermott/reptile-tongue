@@ -1,6 +1,15 @@
 # repl-ui
 
-A [re-frame](https://github.com/Day8/re-frame) application designed to ... well, that part is up to you.
+A [re-frame](https://github.com/Day8/re-frame) shared REPL
+
+## Features
+
+[x] Shared REPL
+[x] Color syntax for output
+[x] Color syntax whilst editing
+[x] Shared REPL
+
+ 
 
 ## Development Mode
 

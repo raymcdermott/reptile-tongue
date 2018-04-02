@@ -18,6 +18,17 @@
     (:eval-results db)))
 
 (re-frame/reg-sub
+  ::status
+  (fn [db]
+    (:status db)))
+
+(re-frame/reg-sub
+  ::key-down
+  (fn [db]
+    ; do the mapping here (91 = Cmd-, 17 Ctrl-, 18 Alt-)
+    (:key-down db)))
+
+(re-frame/reg-sub
   ::name
   (fn [db]
     (:name db)))
