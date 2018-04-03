@@ -10,7 +10,7 @@
 (re-frame/reg-sub
   ::user-name
   (fn [db]
-    (:user-name db)))
+    (get-in db [:user-name :user])))
 
 (re-frame/reg-sub
   ::eval-results

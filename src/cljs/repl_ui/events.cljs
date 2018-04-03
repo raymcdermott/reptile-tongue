@@ -158,8 +158,6 @@
   (fn [db [_ status]]
     (assoc db :status status)))
 
-
-
 (defn apply-parinfer
   [{:keys [text success? error] :as parinfer-result}]
   (if success?
@@ -170,8 +168,11 @@
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form cursor-line cursor-pos]]
-    (let [parinfer-form (apply-parinfer (parinfer/paren-mode current-form {:cursor-line cursor-line
-                                                                            :cursor-x    cursor-pos}))]
+    (let [parinfer-result (parinfer/indent-mode current-form {:cursor-line cursor-line
+                                                              :cursor-x    cursor-pos})
+          parinfer-form (apply-parinfer parinfer-result)]
+      (println "::current-form before -> line" cursor-line "pos" cursor-pos)
+      (println "::current-form parinfer-result ->" parinfer-result)
       {:db                 (assoc db :current-form current-form
                                      :parinfer-form (or parinfer-form current-form))
        ::send-current-form {:current-form current-form :user-name (:user-name db)}})))
@@ -203,7 +204,7 @@
         (fn [result]
           (if (= result :login-ok)
             (re-frame/dispatch [::login-result user-name])
-            (js/alert "Login failed")))))))                 ; TODO could be nicer
+            (js/alert "Login failed")))))))
 
 (reg-event-fx
   ::login

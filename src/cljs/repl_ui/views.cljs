@@ -1,11 +1,12 @@
 (ns repl-ui.views
   (:require [re-frame.core :as re-frame]
             [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-icon-button
-                                 input-textarea h-split v-split title flex-child-style p]]
+                                 input-textarea modal-panel h-split v-split title flex-child-style p]]
             [re-com.splits :refer [hv-split-args-desc]]
             [repl-ui.events :as events]
             [repl-ui.subs :as subs]
-            [cljs.reader :as edn]))
+            [cljs.reader :as edn]
+            [reagent.core :as reagent]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
@@ -27,7 +28,6 @@
 (def history-style {:padding "5px 5px 0px 10px"})
 
 (def status-style (merge default-style {:color "lightgrey"}))
-
 
 (defn splitter-panel-title [text]
   [title :label text :level :level3 :style {:margin-top "20px"}])
@@ -59,23 +59,18 @@
   [md-icon-button :md-icon-name "zmdi-caret-up-circle" :tooltip historical-form
    :on-click #(re-frame/dispatch [::events/current-form historical-form])])
 
-;(defn- convert-options [option]
-;  #js {:cursorX (:cursor-x option)
-;       :cursorLine (:cursor-line option)
-;       :cursorDx (:cursor-dx option)})
-
 (defn edit-panel [panel-name]
   (let [user-name     @(re-frame/subscribe [::subs/user-name])
         parinfer-form @(re-frame/subscribe [::subs/parinfer-form])
         key-down      @(re-frame/subscribe [::subs/key-down])
         eval-results  @(re-frame/subscribe [::subs/eval-results])]
-    [v-box :size "auto" :children
+    [v-box :size "auto"
+     :children
      [[box :size "auto" :child
        [scroller :child
         [:textarea {:id           panel-name
                     :placeholder  (str "(your clojure here) - " user-name)
                     :style        input-style
-
 
                     ;; Dispatch on Alt-Enter
                     :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
@@ -85,16 +80,14 @@
 
                     :on-change    #(let [current-value   (-> % .-currentTarget .-value)
                                          selection-start (-> % .-currentTarget .-selectionStart)
-                                         line-no         (dec (count (.split
-                                                                       (.substring current-value 0 selection-start)
-                                                                       "\n")))
-                                         cursor-pos      (count (last (.split
-                                                                        (.substring current-value 0 selection-start)
-                                                                        "\n")))]
-                                     (re-frame/dispatch [::events/current-form current-value line-no cursor-pos]))
-                    ;:value        parinfer-form
-                    }]]]
-      [h-box :children
+                                         cursor-line     (-> (.substring current-value 0 selection-start)
+                                                             (.split "\n") count dec)
+                                         cursor-pos      (-> (.substring current-value 0 selection-start)
+                                                             (.split "\n") last count)]
+                                     (re-frame/dispatch [::events/current-form current-value cursor-line cursor-pos]))
+                    :value        parinfer-form}]]]
+      [h-box
+       :children
        [[button :label "Eval (or Alt-Enter)" :on-click
          #(re-frame/dispatch [::events/eval (.-value (.getElementById js/document panel-name))])]
         [gap :size "30px"]
@@ -105,32 +98,72 @@
 (defn status-bar
   []
   (let [status @(re-frame/subscribe [::subs/status])]
-    [box :size "40px" :style status-style :child
-     [label :label (str "Edit Status: " (or status "OK"))]]))
+    [h-box
+     :size "40px" :gap "10px" :style status-style
+     :children
+     [[label :label "Edit Status"]
+      (let [style {:color (if status "red" "green")}]
+        [label :style style :label (or status "OK")])]]))
 
-(defn login-panel []
-  [h-box :size "auto" :children
-   [[input-text :model "" :placeholder "user-name" :style input-style :attr {:id "login-panel"}
-     :on-change #(-> nil)]
-    [button :label "Login" :on-click
-     #(re-frame/dispatch [::events/login (.-value (.getElementById js/document "login-panel"))])]]])
+(defn login-form
+  [form-data process-ok]
+  [border
+   :border "1px solid #eee"
+   :child [v-box
+           :width "400px"
+           :height "400px"
+           :gap "30px"
+           :padding "10px"
+           :children [[title :label "Welcome to REPtiLe" :level :level2]
+                      [v-box
+                       :gap "10px"
+                       :children [[label :label "User name"]
+                                  [input-text
+                                   :model (:user @form-data)
+                                   :on-change #(swap! form-data assoc :user %)]
+                                  [label :label "Shared secret"]
+                                  [input-text
+                                   :model (:secret @form-data)
+                                   :on-change #(swap! form-data assoc :secret %)]
+                                  [gap :size "30px"]
+                                  [button
+                                   :label "Access"
+                                   :class "btn-primary"
+                                   :on-click process-ok]]]]]])
+
+
+(defn login []
+  (let [show?      (reagent/atom true)
+        form-data  (reagent/atom {:user   "YOUR-NAME"
+                                  :secret "6738f275-513b-4ab9-8064-93957c4b3f35"})
+        process-ok (fn []
+                     (reset! show? false)
+                     (re-frame/dispatch [::events/login @form-data]))]
+    (fn []
+      (when @show?
+        [modal-panel
+         :backdrop-color "lightblue"
+         :backdrop-opacity 0.1
+         :child [login-form form-data process-ok]]))))
 
 (defn box-panels []
   (let [user-name     @(re-frame/subscribe [::subs/user-name])
         other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
     [h-split :margin "2px"
      :panel-1 [v-split
-               :panel-1 [read-input-panel (or (nth other-editors 0 "0"))]
-               :panel-2 (if user-name
-                          [edit-panel user-name]
-                          [login-panel])]
+               :panel-1 [read-input-panel (or (nth other-editors 0 "?"))]
+               :panel-2 [edit-panel user-name]]
      :panel-2 [v-split
-               :panel-1 [read-input-panel (or (nth other-editors 1 "1"))]
-               :panel-2 [read-input-panel (or (nth other-editors 2 "2"))]]]))
+               :panel-1 [read-input-panel (or (nth other-editors 1 "?"))]
+               :panel-2 [read-input-panel (or (nth other-editors 2 "?"))]]]))
 
 (defn main-panel []
-  [v-box :height "1000px" :children
-   [[v-split :splitter-size "3px" :initial-split "60%"
-     :panel-1 [eval-panel]
-     :panel-2 [box-panels]]
-    (status-bar)]])
+  (let [user-name @(re-frame/subscribe [::subs/user-name])]
+    (if user-name
+      [v-box :height "1000px" :children
+       [[v-split :splitter-size "3px" :initial-split "60%"
+         :panel-1 [eval-panel]
+         :panel-2 [box-panels]]
+        [gap :size "20px"]
+        (status-bar)]]
+      [login])))
