@@ -110,27 +110,18 @@
   [border
    :border "1px solid #eee"
    :child [v-box
-           :width "400px"
-           :height "400px"
-           :gap "30px"
-           :padding "10px"
+           :width "400px" :height "400px" :gap "30px" :padding "10px"
            :children [[title :label "Welcome to REPtiLe" :level :level2]
                       [v-box
                        :gap "10px"
                        :children [[label :label "User name"]
-                                  [input-text
-                                   :model (:user @form-data)
+                                  [input-text :model (:user @form-data)
                                    :on-change #(swap! form-data assoc :user %)]
                                   [label :label "Shared secret"]
-                                  [input-text
-                                   :model (:secret @form-data)
+                                  [input-text :model (:secret @form-data)
                                    :on-change #(swap! form-data assoc :secret %)]
                                   [gap :size "30px"]
-                                  [button
-                                   :label "Access"
-                                   :class "btn-primary"
-                                   :on-click process-ok]]]]]])
-
+                                  [button :label "Access" :on-click process-ok]]]]]])
 
 (defn login []
   (let [show?      (reagent/atom true)

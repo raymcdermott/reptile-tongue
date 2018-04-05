@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: parinfer-cljs:3.11.0-0">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/parinfer-cljs/parinfer-cljs/3.11.0-0/parinfer-cljs-3.11.0-0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
