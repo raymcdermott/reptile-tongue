@@ -46,6 +46,14 @@
     (:parinfer-form db)))
 
 (re-frame/reg-sub
+  ::parinfer-cursor
+  (fn [db]
+    (let [{:keys [cursor-x cursor-line text]} (:parinfer-result db)]
+      {:cursor-x    cursor-x
+       :cursor-line cursor-line
+       :text        text})))
+
+(re-frame/reg-sub
   ::user-keystrokes
   ;; integrate par-edit here for other users?
   (fn [db [_ user]]
