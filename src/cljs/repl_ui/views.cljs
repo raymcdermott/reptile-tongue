@@ -146,8 +146,9 @@
                                                  ;; Dispatch on Alt-Enter
                                                  :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
                                                  :on-key-up    #(re-frame/dispatch [::events/key-up (.-which %)])
-                                                 :on-key-press #(when (and (= (.-which %) 13) (= key-down 18))
-                                                                  (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)]))
+                                                 :on-key-press #(do (re-frame/dispatch [::events/key-press (.-which %)])
+                                                                    (when (and (= (.-which %) 13) (= key-down 18))
+                                                                      (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)])))
 
                                                  :on-change    #(let [current-value   (-> % .-currentTarget .-value)
                                                                       selection-start (-> % .-currentTarget .-selectionStart)

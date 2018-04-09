@@ -143,6 +143,12 @@
   (fn [db [_ _]]
     (dissoc db :key-down)))
 
+(reg-event-db
+  ::key-press
+  (fn [db [_ key-code]]
+    (assoc db :key-press key-code)))
+
+
 ;; Text
 
 (reg-fx
@@ -159,8 +165,7 @@
     (assoc db :status status)))
 
 (defn apply-parinfer
-  [{:keys [text success? error] :as parinfer-result}]
-  (println "apply-parinfer" parinfer-result)
+  [{:keys [text success? error]}]
   (if success?
     text
     (do (re-frame/dispatch [::update-status (:message error)])
@@ -170,8 +175,10 @@
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form cursor-line cursor-pos]]
-    (let [parinfer-result (parinfer/indent-mode current-form {:cursor-line cursor-line
-                                                             :cursor-x    cursor-pos})
+    (let [enter-pressed?  (= (:key-press db) 13)
+          parinfer-mode   (if enter-pressed? parinfer/paren-mode parinfer/indent-mode)
+          parinfer-result (parinfer-mode current-form {:cursor-line cursor-line
+                                                       :cursor-x    cursor-pos})
           parinfer-form   (apply-parinfer parinfer-result)]
       {:db                 (assoc db :current-form current-form
                                      :parinfer-form (or parinfer-form current-form)
