@@ -4,3 +4,5 @@
 /*-init.clj
 /resources/public/js/compiled
 out
+/repl-ui.iml
+/.nrepl-port
