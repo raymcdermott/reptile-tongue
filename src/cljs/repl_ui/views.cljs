@@ -80,10 +80,14 @@
 
                     :on-change    #(let [current-value   (-> % .-currentTarget .-value)
                                          selection-start (-> % .-currentTarget .-selectionStart)
-                                         cursor-line     (-> (.substring current-value 0 selection-start)
-                                                             (.split "\n") count dec)
-                                         cursor-pos      (-> (.substring current-value 0 selection-start)
-                                                             (.split "\n") last count)]
+                                         cursor-line     (-> current-value
+                                                             (subs  0 selection-start)
+                                                             str/split-lines
+                                                             count dec)
+                                         cursor-pos      (-> current-value
+                                                             (subs 0 selection-start)
+                                                             str/split-lines
+                                                             last count)]
                                      (re-frame/dispatch [::events/current-form current-value cursor-line cursor-pos]))
                     :value        parinfer-form}]]]
       [h-box
@@ -95,6 +99,7 @@
           [h-box :size "auto" :align :center :style history-style :children
            (reverse (map format-history (distinct (map :original-form eval-results))))])]]]]))
 
+;; TODO - make this component a text area and declare the other parts outside
 (defn edit-component
   [panel-name]
   (let [pre-cursor (atom {:cursor-x 0 :cursor-line 0 :text ""})
@@ -112,11 +117,11 @@
                                      {:keys [cursor-x text cursor-line]} @new-cursor
                                      offset     (if (= cursor-line 0)
                                                   0
-                                                  (+ cursor-line
-                                                     (reduce + (map #(-> (str/split text #"\n")
-                                                                         (nth %)
-                                                                         count)
-                                                                    (range cursor-line)))))
+                                                  (+ cursor-line (reduce + (map #(-> text
+                                                                                     str/split-lines
+                                                                                     (nth %)
+                                                                                     count)
+                                                                                (range cursor-line)))))
                                      cursor-pos (+ cursor-x offset)]
 
                                  ;; Set the focus on the text area
@@ -153,11 +158,11 @@
                                                  :on-change    #(let [current-value   (-> % .-currentTarget .-value)
                                                                       selection-start (-> % .-currentTarget .-selectionStart)
                                                                       cursor-line     (-> (subs current-value 0 selection-start)
-                                                                                          (str/split #"\n")
+                                                                                          str/split-lines
                                                                                           count
                                                                                           dec)
                                                                       cursor-pos      (-> (subs current-value 0 selection-start)
-                                                                                          (str/split #"\n")
+                                                                                          str/split-lines
                                                                                           last
                                                                                           count)]
                                                                   (re-frame/dispatch [::events/current-form current-value cursor-line cursor-pos]))
