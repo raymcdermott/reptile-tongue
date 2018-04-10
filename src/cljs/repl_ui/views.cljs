@@ -30,10 +30,12 @@
 
 (def status-style (merge default-style {:color "lightgrey"}))
 
-(defn splitter-panel-title [text]
+(defn splitter-panel-title
+  [text]
   [title :label text :level :level3 :style {:margin-top "20px"}])
 
-(defn read-input-panel [user-name]
+(defn read-input-panel
+  [user-name]
   (let [current-form @(re-frame/subscribe [::subs/user-keystrokes user-name])]
     [v-box :size "auto" :children
      [[box :size "auto" :child
@@ -41,55 +43,112 @@
         [label :label current-form]
         [splitter-panel-title [:code user-name]]]]]]))
 
-(defn format-result [result]
+(defn format-result
+  [result]
   (let [form (or (first (edn/read-string (:pretty result))) (:form result))]
     [v-box :size "auto" :children
      [[label :label form]
       [label :label (str "=> " (:val result)) :on-click #(js/alert result)]
       [gap :size "20px"]]]))
 
+(defn eval-panel
+  []
+  (reagent/create-class
+    {:component-did-update
+     (fn event-expression-component-did-update [this]
+       (let [node (reagent/dom-node this)]                  ;; Keep the content scrolling from the bottom
+         (set! (.-scrollTop node) (.-scrollHeight node))))
 
-(defn eval-panel []
-  (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
-    [scroller :style eval-panel-style :child
-     [box :style eval-content-style :size "auto" :child
-      [:div (when eval-results [v-box :size "auto" :children
-                                (map format-result eval-results)])]]]))
+     :display-name
+     "eval-component"
 
-(defn format-history [historical-form]
+     :reagent-render
+     (fn
+       []
+       (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
+         [scroller :style eval-panel-style
+          :child
+          [box :style eval-content-style :size "auto"
+           :child
+           [:div (when eval-results
+                   [v-box :size "auto" :children
+                    (map format-result eval-results)])]]]))}))
+
+(defn format-history
+  [historical-form]
   [md-icon-button :md-icon-name "zmdi-caret-up-circle" :tooltip historical-form
    :on-click #(re-frame/dispatch [::events/current-form historical-form])])
 
-(defn edit-panel [panel-name]
-  (let [parinfer-form @(re-frame/subscribe [::subs/parinfer-form])
-        key-down      @(re-frame/subscribe [::subs/key-down])
-        eval-results  @(re-frame/subscribe [::subs/eval-results])]
+
+(defn edit-component
+  [panel-name]
+  (let [pre-cursor (atom {:cursor-x 0 :cursor-line 0 :text ""})
+        new-cursor (atom {:cursor-x 0 :cursor-line 0 :text ""})]
+    (reagent/create-class
+      {:component-did-mount
+       (fn event-expression-component-did-mount [this]
+         (.focus (reagent/dom-node this)))
+
+       :component-did-update
+       (fn event-expression-component-did-update [this]
+         (let [node   (reagent/dom-node this)
+               pre-x  (:cursor-x @pre-cursor)
+               {:keys [cursor-x text cursor-line]} @new-cursor
+               offset (+ cursor-x cursor-line (reduce + (map #(-> text
+                                                                  str/split-lines
+                                                                  (nth %)
+                                                                  count)
+                                                             (range cursor-line))))]
+           ;; Set the focus on the text area
+           (.focus node)
+
+           ;; Move the cursor
+           (when (not= pre-x cursor-x)
+             (reset! pre-cursor @new-cursor)
+             (.setSelectionRange node offset offset))))
+
+       :display-name
+       "edit-component"
+
+       :reagent-render
+       (fn
+         [panel-name]
+         (let [parinfer-form   @(re-frame/subscribe [::subs/parinfer-form])
+               parinfer-cursor @(re-frame/subscribe [::subs/parinfer-cursor])
+               key-down        @(re-frame/subscribe [::subs/key-down])]
+           (reset! new-cursor parinfer-cursor)
+           [:textarea
+            {:id           panel-name
+             :placeholder  (str "(your clojure here) - " panel-name)
+             :style        input-style
+
+             ;; Dispatch on Alt-Enter
+             :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
+             :on-key-up    #(re-frame/dispatch [::events/key-up (.-which %)])
+             :on-key-press #(do (re-frame/dispatch [::events/key-press (.-which %)])
+                                (when (and (= (.-which %) 13) (= key-down 18))
+                                  (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)])))
+
+             :on-change    #(let [current-value   (-> % .-currentTarget .-value)
+                                  selection-start (-> % .-currentTarget .-selectionStart)
+                                  cursor-line     (-> (subs current-value 0 selection-start)
+                                                      str/split-lines count dec)
+                                  cursor-pos      (-> (subs current-value 0 selection-start)
+                                                      str/split-lines last count)]
+                              (re-frame/dispatch [::events/current-form current-value
+                                                  cursor-line cursor-pos
+                                                  (:cursor-line @pre-cursor) (:cursor-x @pre-cursor)]))
+             :value        parinfer-form}]))})))
+
+(defn edit-panel
+  [panel-name]
+  (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
     [v-box :size "auto"
      :children
      [[box :size "auto" :child
        [scroller :child
-        [:textarea {:id           panel-name
-                    :placeholder  (str "(your clojure here) - " panel-name)
-                    :style        input-style
-
-                    ;; Dispatch on Alt-Enter
-                    :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
-                    :on-key-up    #(re-frame/dispatch [::events/key-up (.-which %)])
-                    :on-key-press #(when (and (= (.-which %) 13) (= key-down 18))
-                                     (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)]))
-
-                    :on-change    #(let [current-value   (-> % .-currentTarget .-value)
-                                         selection-start (-> % .-currentTarget .-selectionStart)
-                                         cursor-line     (-> current-value
-                                                             (subs  0 selection-start)
-                                                             str/split-lines
-                                                             count dec)
-                                         cursor-pos      (-> current-value
-                                                             (subs 0 selection-start)
-                                                             str/split-lines
-                                                             last count)]
-                                     (re-frame/dispatch [::events/current-form current-value cursor-line cursor-pos]))
-                    :value        parinfer-form}]]]
+        [edit-component panel-name]]]
+      [gap :size "5px"]
       [h-box
        :children
        [[button :label "Eval (or Alt-Enter)" :on-click
@@ -98,83 +157,6 @@
         (when eval-results                                  ; visualise and give access to history
           [h-box :size "auto" :align :center :style history-style :children
            (reverse (map format-history (distinct (map :original-form eval-results))))])]]]]))
-
-;; TODO - make this component a text area and declare the other parts outside
-(defn edit-component
-  [panel-name]
-  (let [pre-cursor (atom {:cursor-x 0 :cursor-line 0 :text ""})
-        new-cursor (atom {:cursor-x 0 :cursor-line 0 :text ""})]
-    (reagent/create-class
-      {:component-did-mount  (fn event-expression-component-did-mount [this]
-                               (let [node (.getElementById js/document panel-name)]
-                                 ;; Set the initial focus on the text area
-                                 (.focus node)))
-
-
-       :component-did-update (fn event-expression-component-did-update [this]
-                               (let [node       (.getElementById js/document panel-name)
-                                     pre-text   (:text @pre-cursor)
-                                     {:keys [cursor-x text cursor-line]} @new-cursor
-                                     offset     (if (= cursor-line 0)
-                                                  0
-                                                  (+ cursor-line (reduce + (map #(-> text
-                                                                                     str/split-lines
-                                                                                     (nth %)
-                                                                                     count)
-                                                                                (range cursor-line)))))
-                                     cursor-pos (+ cursor-x offset)]
-
-                                 ;; Set the focus on the text area
-                                 (.focus node)
-
-                                 ;; Set the focus on the text area
-                                 (when (not= (count text) (count pre-text))
-                                   (reset! pre-cursor @new-cursor)
-                                   (.setSelectionRange node cursor-pos cursor-pos))))
-
-       :display-name         "edit-component"
-
-       :reagent-render       (fn [panel-name]
-                               (let [parinfer-form   @(re-frame/subscribe [::subs/parinfer-form])
-                                     parinfer-cursor @(re-frame/subscribe [::subs/parinfer-cursor])
-                                     key-down        @(re-frame/subscribe [::subs/key-down])
-                                     eval-results    @(re-frame/subscribe [::subs/eval-results])]
-                                 (reset! new-cursor parinfer-cursor)
-                                 [v-box :size "auto"
-                                  :children
-                                  [[box :size "auto" :child
-                                    [scroller :child
-                                     [:textarea {:id           panel-name
-                                                 :placeholder  (str "(your clojure here) - " panel-name)
-                                                 :style        input-style
-
-                                                 ;; Dispatch on Alt-Enter
-                                                 :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
-                                                 :on-key-up    #(re-frame/dispatch [::events/key-up (.-which %)])
-                                                 :on-key-press #(do (re-frame/dispatch [::events/key-press (.-which %)])
-                                                                    (when (and (= (.-which %) 13) (= key-down 18))
-                                                                      (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)])))
-
-                                                 :on-change    #(let [current-value   (-> % .-currentTarget .-value)
-                                                                      selection-start (-> % .-currentTarget .-selectionStart)
-                                                                      cursor-line     (-> (subs current-value 0 selection-start)
-                                                                                          str/split-lines
-                                                                                          count
-                                                                                          dec)
-                                                                      cursor-pos      (-> (subs current-value 0 selection-start)
-                                                                                          str/split-lines
-                                                                                          last
-                                                                                          count)]
-                                                                  (re-frame/dispatch [::events/current-form current-value cursor-line cursor-pos]))
-                                                 :value        parinfer-form}]]]
-                                   [h-box
-                                    :children
-                                    [[button :label "Eval (or Alt-Enter)" :on-click
-                                      #(re-frame/dispatch [::events/eval (.-value (.getElementById js/document panel-name))])]
-                                     [gap :size "30px"]
-                                     (when eval-results     ; visualise and give access to history
-                                       [h-box :size "auto" :align :center :style history-style :children
-                                        (reverse (map format-history (distinct (map :original-form eval-results))))])]]]]))})))
 
 (defn status-bar
   []
@@ -204,33 +186,38 @@
                                   [gap :size "30px"]
                                   [button :label "Access" :on-click process-ok]]]]]])
 
-(defn login []
+(defn login
+  []
   (let [show?      (reagent/atom true)
         form-data  (reagent/atom {:user   "YOUR-NAME"
                                   :secret "6738f275-513b-4ab9-8064-93957c4b3f35"})
-        process-ok (fn []
+        process-ok (fn
+                     []
                      (reset! show? false)
                      (re-frame/dispatch [::events/login @form-data]))]
-    (fn []
+    (fn
+      []
       (when @show?
         [modal-panel
          :backdrop-color "lightblue"
          :backdrop-opacity 0.1
          :child [login-form form-data process-ok]]))))
 
-(defn box-panels []
+(defn box-panels
+  []
   (let [user-name     @(re-frame/subscribe [::subs/user-name])
         other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
     [h-split :margin "2px"
      :panel-1 [v-split
                :panel-1 [read-input-panel (or (nth other-editors 0 "?"))]
-               :panel-2 [edit-component user-name]]
+               :panel-2 [edit-panel user-name]]
      :panel-2 [v-split
                :panel-1 [read-input-panel (or (nth other-editors 1 "?"))]
                :panel-2 [read-input-panel (or (nth other-editors 2 "?"))]]]))
 
 
-(defn main-panel []
+(defn main-panel
+  []
   (let [user-name @(re-frame/subscribe [::subs/user-name])]
     (if user-name
       [v-box :height "1000px" :children
@@ -240,3 +227,5 @@
         [gap :size "20px"]
         [status-bar]]]
       [login])))
+
+

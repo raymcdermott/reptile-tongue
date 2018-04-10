@@ -174,11 +174,13 @@
 
 (reg-event-fx
   ::current-form
-  (fn [{:keys [db]} [_ current-form cursor-line cursor-pos]]
+  (fn [{:keys [db]} [_ current-form cursor-line cursor-pos prev-cursor-line prev-cursor-x]]
     (let [enter-pressed?  (= (:key-press db) 13)
           parinfer-mode   (if enter-pressed? parinfer/paren-mode parinfer/indent-mode)
-          parinfer-result (parinfer-mode current-form {:cursor-line cursor-line
-                                                       :cursor-x    cursor-pos})
+          parinfer-result (parinfer-mode current-form {:cursor-line      cursor-line
+                                                       :cursor-x         cursor-pos
+                                                       :prev-cursor-line prev-cursor-line
+                                                       :prev-cursor-x    prev-cursor-x})
           parinfer-form   (apply-parinfer parinfer-result)]
       {:db                 (assoc db :current-form current-form
                                      :parinfer-form (or parinfer-form current-form)
