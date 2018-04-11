@@ -36,20 +36,59 @@
 
 (defn read-input-panel
   [user-name]
-  (let [current-form @(re-frame/subscribe [::subs/user-keystrokes user-name])]
+  (let [current-form @(re-frame/subscribe [::subs/user-keystrokes (keyword user-name)])]
     [v-box :size "auto" :children
      [[box :size "auto" :child
        [:div {:style panel-style :id (str user-name "-out")}
         [label :label current-form]
         [splitter-panel-title [:code user-name]]]]]]))
 
+(defn format-trace
+  [via trace]
+  (let [show-trace? (reagent/atom false)]
+    (fn
+      []
+      [v-box
+       :children
+       [[md-icon-button :md-icon-name "zmdi-zoom-in"
+         :tooltip (:at (first via))
+         :on-click #(reset! show-trace? true)]
+        (when @show-trace?
+          [modal-panel
+           :backdrop-on-click #(reset! show-trace? false)
+           :child
+           [scroller :child
+            [v-box :size "auto"
+             :children
+             [(map (fn [element]
+                     [label :label (str element)])
+                   trace)
+              [gap :size "20px"]
+              [button :label "Done (or click the backdrop)"
+               :on-click #(reset! show-trace? false)]]]]])]])))
+
+(defn format-exception
+  [{:keys [val original-form]}]
+  (let [{:keys [cause via trace]} (edn/read-string val)]
+    [v-box :size "auto"
+     :children [[label :label original-form]
+                [h-box :size "auto"
+                 :children [[label :style {:color "red"} :label (str "=> " cause)]
+                            [gap :size "20px"]
+                            [format-trace via trace]]]
+                [gap :size "20px"]]]))
+
 (defn format-result
   [result]
-  (let [form (or (first (edn/read-string (:pretty result))) (:form result))]
-    [v-box :size "auto" :children
-     [[label :label form]
-      [label :label (str "=> " (:val result)) :on-click #(js/alert result)]
-      [gap :size "20px"]]]))
+  (let [val  (try (edn/read-string (:val result))
+                  (catch js/Error _ (:val result)))
+        form (or (first (edn/read-string (:pretty result))) (:form result))]
+    (if (and (map? val) (= #{:cause :via :trace} (set (keys val))))
+      [format-exception result]
+      [v-box :size "auto" :children
+       [[label :label form]
+        [label :label (str "=> " (:val result))]
+        [gap :size "20px"]]])))
 
 (defn eval-panel
   []
@@ -76,7 +115,7 @@
 
 (defn format-history
   [historical-form]
-  [md-icon-button :md-icon-name "zmdi-caret-up-circle" :tooltip historical-form
+  [md-icon-button :md-icon-name "zmdi-comment-text" :tooltip historical-form
    :on-click #(re-frame/dispatch [::events/current-form historical-form])])
 
 
@@ -159,12 +198,14 @@
            (reverse (map format-history (distinct (map :original-form eval-results))))])]]]]))
 
 (defn status-bar
-  []
+  [user-name]
   (let [status @(re-frame/subscribe [::subs/status])]
     [h-box
-     :size "40px" :gap "10px" :style status-style
+     :size "40px" :gap "20px" :style status-style
      :children
-     [[label :label "Edit Status"]
+     [[label :label (str "User: " user-name)]
+      [line]
+      [label :label "Edit Status:"]
       (let [style {:color (if status "red" "green")}]
         [label :style style :label (or status "OK")])]]))
 
@@ -225,7 +266,7 @@
          :panel-1 [eval-panel]
          :panel-2 [box-panels]]
         [gap :size "20px"]
-        [status-bar]]]
+        [status-bar user-name]]]
       [login])))
 
 

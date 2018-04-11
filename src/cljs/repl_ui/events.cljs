@@ -79,8 +79,8 @@
 
 (reg-event-db
   ::update-forms
-  (fn [db [_ {:keys [form user-name]}]]
-    (assoc-in db [:current-forms user-name] form)))
+  (fn [db [_ update]]
+    (assoc-in db [:current-forms (keyword (:user update))] (:form update))))
 
 (reg-event-db
   ::editors
@@ -213,7 +213,7 @@
         [:reptile/login {:proposed-user user-name}] (or timeout 3000)
         (fn [result]
           (if (= result :login-ok)
-            (re-frame/dispatch [::login-result user-name])
+            (re-frame/dispatch [::login-result (:user user-name)])
             (js/alert "Login failed")))))))
 
 (reg-event-fx
