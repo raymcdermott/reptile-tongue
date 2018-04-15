@@ -166,11 +166,8 @@
 
 (defn apply-parinfer
   [{:keys [text success? error]}]
-  (if success?
-    text
-    (do (re-frame/dispatch [::update-status (:message error)])
-        ;; maybe some other stuff ???
-        text)))
+  (when-not success? (re-frame/dispatch [::update-status (:message error)]))
+  text)
 
 (reg-event-fx
   ::current-form
@@ -221,6 +218,4 @@
   (fn [cofx [_ user-name]]
     {:db     (assoc (:db cofx) :proposed-user user-name :user-name nil)
      ::login {:user-name user-name}}))
-
-
 

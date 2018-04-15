@@ -7,19 +7,26 @@
             [repl-ui.subs :as subs]
             [cljs.reader :as edn]
             [reagent.core :as reagent]
+            [parinfer-cljs.core :as parinfer]
             [clojure.string :as str]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
                     :padding     "10px 20px 0px 20px"})
 
-(def panel-style (merge (flex-child-style "1") default-style
-                        {:background-color "#e8e8e8"}))
+(def readonly-panel-style (merge
+                            (flex-child-style "1")
+                            default-style
+                            {:background-color "#e8e8e8"
+                             :resize           "none"}))
 
-(def input-style (merge (flex-child-style "1") default-style
-                        {:resize "none"}))
+(def input-style (merge
+                   (flex-child-style "1")
+                   default-style
+                   {:resize "none"}))
 
-(def eval-panel-style (merge (flex-child-style "1") default-style))
+(def eval-panel-style (merge (flex-child-style "1")
+                             default-style))
 
 (def eval-content-style (merge (flex-child-style "1")
                                {:resize    "none"
@@ -30,18 +37,22 @@
 
 (def status-style (merge default-style {:color "lightgrey"}))
 
-(defn splitter-panel-title
-  [text]
-  [title :label text :level :level3 :style {:margin-top "20px"}])
+; TODO use background image
+; :background-image "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='50px' width='120px'><text x='0' y='15' fill='red' font-size='20'>I love SVG!</text></svg>"
 
 (defn read-input-panel
   [user-name]
   (let [current-form @(re-frame/subscribe [::subs/user-keystrokes (keyword user-name)])]
     [v-box :size "auto" :children
-     [[box :size "auto" :child
-       [:div {:style panel-style :id (str user-name "-out")}
-        [label :label current-form]
-        [splitter-panel-title [:code user-name]]]]]]))
+     [[:textarea
+       {:id          (str "read-input-panel-" user-name)
+        :placeholder user-name
+        :style       readonly-panel-style
+        :disabled    true
+        :on-change   #(-> nil)
+        :value       (str user-name "\n"
+                          (when current-form
+                            (:text (parinfer/paren-mode current-form))))}]]]))
 
 (defn format-trace
   [via trace]
@@ -157,27 +168,28 @@
                key-down        @(re-frame/subscribe [::subs/key-down])]
            (reset! new-cursor parinfer-cursor)
            [:textarea
-            {:id           panel-name
-             :placeholder  (str "(your clojure here) - " panel-name)
-             :style        input-style
+            {:id            panel-name
+             :auto-complete false
+             :placeholder   (str "(your clojure here) - " panel-name)
+             :style         input-style
 
              ;; Dispatch on Alt-Enter
-             :on-key-down  #(re-frame/dispatch [::events/key-down (.-which %)])
-             :on-key-up    #(re-frame/dispatch [::events/key-up (.-which %)])
-             :on-key-press #(do (re-frame/dispatch [::events/key-press (.-which %)])
-                                (when (and (= (.-which %) 13) (= key-down 18))
-                                  (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)])))
+             :on-key-down   #(re-frame/dispatch [::events/key-down (.-which %)])
+             :on-key-up     #(re-frame/dispatch [::events/key-up (.-which %)])
+             :on-key-press  #(do (re-frame/dispatch [::events/key-press (.-which %)])
+                                 (when (and (= (.-which %) 13) (= key-down 18))
+                                   (re-frame/dispatch [::events/eval (-> % .-currentTarget .-value)])))
 
-             :on-change    #(let [current-value   (-> % .-currentTarget .-value)
-                                  selection-start (-> % .-currentTarget .-selectionStart)
-                                  cursor-line     (-> (subs current-value 0 selection-start)
-                                                      str/split-lines count dec)
-                                  cursor-pos      (-> (subs current-value 0 selection-start)
-                                                      str/split-lines last count)]
-                              (re-frame/dispatch [::events/current-form current-value
-                                                  cursor-line cursor-pos
-                                                  (:cursor-line @pre-cursor) (:cursor-x @pre-cursor)]))
-             :value        parinfer-form}]))})))
+             :on-change     #(let [current-value   (-> % .-currentTarget .-value)
+                                   selection-start (-> % .-currentTarget .-selectionStart)
+                                   cursor-line     (-> (subs current-value 0 selection-start)
+                                                       str/split-lines count dec)
+                                   cursor-pos      (-> (subs current-value 0 selection-start)
+                                                       str/split-lines last count)]
+                               (re-frame/dispatch [::events/current-form current-value
+                                                   cursor-line cursor-pos
+                                                   (:cursor-line @pre-cursor) (:cursor-x @pre-cursor)]))
+             :value         parinfer-form}]))})))
 
 (defn edit-panel
   [panel-name]
@@ -248,21 +260,18 @@
   []
   (let [user-name     @(re-frame/subscribe [::subs/user-name])
         other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
-    [h-split :margin "2px"
-     :panel-1 [v-split
-               :panel-1 [read-input-panel (or (nth other-editors 0 "?"))]
-               :panel-2 [edit-panel user-name]]
-     :panel-2 [v-split
-               :panel-1 [read-input-panel (or (nth other-editors 1 "?"))]
-               :panel-2 [read-input-panel (or (nth other-editors 2 "?"))]]]))
+    [v-split :initial-split "40%"
+     :panel-1 [read-input-panel (or (nth other-editors 0 "?"))]
+     :panel-2 [edit-panel user-name]]))
 
 
 (defn main-panel
   []
   (let [user-name @(re-frame/subscribe [::subs/user-name])]
     (if user-name
-      [v-box :height "1000px" :children
-       [[v-split :splitter-size "3px" :initial-split "60%"
+      [v-box :height "1000px"
+       :children
+       [[v-split :splitter-size "3px"
          :panel-1 [eval-panel]
          :panel-2 [box-panels]]
         [gap :size "20px"]
