@@ -2,6 +2,7 @@
   (:require
     [cljs.core.specs.alpha]
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
+    [repl-ui.config :as config]
     [repl-ui.db :as db]
     [clojure.string :as str]
     [parinfer-cljs.core :as parinfer]
@@ -26,32 +27,12 @@
 ;                {:db         db/default-db
 ;                 :async-flow (boot-flow)}))
 
+; TODO for DCD ... have this read a host URL from an Atom that is set by the login UI
 
 ;; (timbre/set-level! :trace) ; Uncomment for more logging
 
-;;;; Define our Sente channel socket (chsk) client
+(declare chsk ch-chsk chsk-send! chsk-state)
 
-(let [;; Serialization format, must use same val for client + server:
-      packer (sente-transit/get-transit-packer)             ; Needs Transit dep
-
-      {:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket-client!
-        "/chsk"                                             ; Must match server Ring routing URL
-        {:type   :auto
-         ; need to add in the host as it defaults to current server - TODO configure out for dev (OK for PROD)
-         :host   "localhost:9090"
-         :packer packer})]
-
-  (def chsk chsk)
-
-  ; ChannelSocket's receive channel
-  (def ch-chsk ch-recv)
-
-  ; ChannelSocket's send API fn
-  (def chsk-send! send-fn)
-
-  ; Watchable, read-only atom
-  (def chsk-state state))
 
 ;;;;; Sente event handlers
 
@@ -118,11 +99,6 @@
   (reset! router_
           (sente/start-client-chsk-router!
             ch-chsk event-msg-handler)))
-
-;;;; Init stuff
-(defn start! [] (start-router!))
-(defonce _start-once (start!))
-
 
 ;; Events
 
@@ -202,20 +178,54 @@
   (fn [db [_ user-name]]
     (assoc db :user-name user-name)))
 
+(let [;; Serialization format, must use same val for client + server:
+      packer (sente-transit/get-transit-packer)             ; Needs Transit dep
+
+      {:keys [chsk ch-recv send-fn state]}
+      (sente/make-channel-socket-client!
+        "/chsk"                                             ; Must match server Ring routing URL
+        {:type   :auto
+         :host   config/server-url
+         :packer packer})]
+
+  (println "server-connect chsk" chsk "\nch-recv" ch-recv "\nsend-fn" send-fn "\nstate" state)
+
+  (def chsk chsk)
+
+  ; ChannelSocket's receive channel
+  (def ch-chsk ch-recv)
+
+  ; ChannelSocket's send API fn
+  (def chsk-send! send-fn)
+
+  ; Watchable, read-only atom
+  (def chsk-state state)
+
+  ;; Now we have all of this set up we can start the router
+  (start-router!))
+
+;;; Maybe we need to have the boot flow where we connect,
+;;; get some multi-method fired that produces an event to say the WS is available
+;;; and then we login
 (reg-fx
-  ::login
-  (fn [{:keys [user-name timeout]}]
-    (when-not (str/blank? user-name)
-      (chsk-send!
-        [:reptile/login {:proposed-user user-name}] (or timeout 3000)
-        (fn [result]
-          (if (= result :login-ok)
-            (re-frame/dispatch [::login-result (:user user-name)])
-            (js/alert "Login failed")))))))
+  ::server-login
+  (fn [{:keys [login-options timeout]}]
+
+    ;; Move this out and have its own event
+    ;    (server-connect login-options)
+
+    ;; Have this started by flow
+    (chsk-send! [:reptile/login login-options] (or timeout 3000)
+                (fn [result]
+                  (println "::server-login result" result)
+                  (if (= result :login-ok)
+                    (re-frame/dispatch [::login-result (:user login-options)])
+                    (js/alert "Login failed"))))))
 
 (reg-event-fx
   ::login
-  (fn [cofx [_ user-name]]
-    {:db     (assoc (:db cofx) :proposed-user user-name :user-name nil)
-     ::login {:user-name user-name}}))
+  (fn [cofx [_ login-options]]
+    {:db            (assoc (:db cofx) :proposed-user (:user login-options) :user-name nil)
+     ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
+     ::server-login {:login-options login-options}}))
 

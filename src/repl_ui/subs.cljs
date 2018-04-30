@@ -59,5 +59,8 @@
   (fn [db [_ user]]
     (get-in db [:current-forms user])))
 
-
+(re-frame/reg-sub
+  ::logged-in
+  (fn [db]
+    (:logged-in db)))
 

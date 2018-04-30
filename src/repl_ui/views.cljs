@@ -226,35 +226,33 @@
   [border
    :border "1px solid #eee"
    :child [v-box
-           :width "400px" :height "400px" :gap "30px" :padding "10px"
+           :size "auto"
+           :gap "30px" :padding "10px"
            :children [[title :label "Welcome to REPtiLe" :level :level2]
                       [v-box
                        :gap "10px"
                        :children [[label :label "User name"]
-                                  [input-text :model (:user @form-data)
+                                  [input-text
+                                   :model (:user @form-data)
                                    :on-change #(swap! form-data assoc :user %)]
                                   [label :label "Shared secret"]
-                                  [input-text :model (:secret @form-data)
+                                  [input-text
+                                   :model (:secret @form-data)
                                    :on-change #(swap! form-data assoc :secret %)]
                                   [gap :size "30px"]
                                   [button :label "Access" :on-click process-ok]]]]]])
 
 (defn login
   []
-  (let [show?      (reagent/atom true)
-        form-data  (reagent/atom {:user   "YOUR-NAME"
+  (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
+        form-data  (reagent/atom {:user   "?"
                                   :secret "6738f275-513b-4ab9-8064-93957c4b3f35"})
-        process-ok (fn
-                     []
-                     (reset! show? false)
-                     (re-frame/dispatch [::events/login @form-data]))]
-    (fn
-      []
-      (when @show?
-        [modal-panel
-         :backdrop-color "lightblue"
-         :backdrop-opacity 0.1
-         :child [login-form form-data process-ok]]))))
+        process-ok (fn [] (re-frame/dispatch [::events/login (clj->js @form-data)]))]
+    (fn [] (when-not logged-in
+             [modal-panel
+              :backdrop-color "lightblue"
+              :backdrop-opacity 0.1
+              :child [login-form form-data process-ok]]))))
 
 (defn box-panels
   []
