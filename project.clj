@@ -38,7 +38,7 @@
   :cljsbuild
   {:builds
    [{:id           "dev"
-     :source-paths ["src/cljs"]
+     :source-paths ["src"]
      :figwheel     {:on-jsload "repl-ui.core/mount-root"}
      :compiler     {:main                 repl-ui.core
                     :output-to            "resources/public/js/compiled/app.js"
@@ -49,7 +49,7 @@
                     :external-config      {:devtools/config {:features-to-install :all}}}}
 
     {:id           "min"
-     :source-paths ["src/cljs"]
+     :source-paths ["src"]
      :compiler     {:main            repl-ui.core
                     :output-to       "resources/public/js/compiled/app.js"
                     :optimizations   :advanced
