@@ -4,10 +4,14 @@ A [re-frame](https://github.com/Day8/re-frame) shared REPL
 
 ## Features
 
-[x] Shared REPL
-[x] Color syntax for output
-[x] Color syntax whilst editing
-[x] Shared REPL
+- [X] Shared REPL
+- [X] Color syntax for output
+- [X] simple parinfer integration
+- [ ] Simple exception viewing 
+- [ ] Filtered / expandable exception viewing 
+- [ ] Color syntax whilst editing
+- [ ] user selected parinfer mode
+- [ ] matching parens
 
  
 
