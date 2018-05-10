@@ -247,7 +247,8 @@
   (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
         form-data  (reagent/atom {:user   "?"
                                   :secret "6738f275-513b-4ab9-8064-93957c4b3f35"})
-        process-ok (fn [] (re-frame/dispatch [::events/login (clj->js @form-data)]))]
+        process-ok (fn []
+                     (re-frame/dispatch [::events/login @form-data]))]
     (fn [] (when-not logged-in
              [modal-panel
               :backdrop-color "lightblue"

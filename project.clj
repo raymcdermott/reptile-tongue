@@ -30,28 +30,24 @@
 
   :figwheel {:css-dirs ["resources/public/css"]}
 
-  :profiles
-  {:dev
-   {:dependencies [[binaryage/devtools "0.9.4"]]
-    :plugins      [[lein-figwheel "0.5.13"]]}}
+  :profiles {:dev {:dependencies [[binaryage/devtools "0.9.4"]]
+                   :plugins      [[lein-figwheel "0.5.13"]]}}
 
-  :cljsbuild
-  {:builds
-   [{:id           "dev"
-     :source-paths ["src"]
-     :figwheel     {:on-jsload "repl-ui.core/mount-root"}
-     :compiler     {:main                 repl-ui.core
-                    :output-to            "resources/public/js/compiled/app.js"
-                    :output-dir           "resources/public/js/compiled/out"
-                    :asset-path           "js/compiled/out"
-                    :source-map-timestamp true
-                    :preloads             [devtools.preload]
-                    :external-config      {:devtools/config {:features-to-install :all}}}}
+  :cljsbuild {:builds [{:id           "dev"
+                        :source-paths ["src"]
+                        :figwheel     {:on-jsload "repl-ui.core/mount-root"}
+                        :compiler     {:main                 repl-ui.core
+                                       :output-to            "resources/public/js/compiled/app.js"
+                                       :output-dir           "resources/public/js/compiled/out"
+                                       :asset-path           "js/compiled/out"
+                                       :source-map-timestamp true
+                                       :preloads             [devtools.preload]
+                                       :external-config      {:devtools/config {:features-to-install :all}}}}
 
-    {:id           "min"
-     :source-paths ["src"]
-     :compiler     {:main            repl-ui.core
-                    :output-to       "resources/public/js/compiled/app.js"
-                    :optimizations   :advanced
-                    :closure-defines {goog.DEBUG false}
-                    :pretty-print    false}}]})
+                       {:id           "min"
+                        :source-paths ["src"]
+                        :compiler     {:main            repl-ui.core
+                                       :output-to       "resources/public/js/compiled/app.js"
+                                       :optimizations   :advanced
+                                       :closure-defines {goog.DEBUG false}
+                                       :pretty-print    false}}]})

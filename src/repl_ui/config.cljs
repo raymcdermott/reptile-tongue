@@ -6,8 +6,8 @@
 (def browser-port
   (.-port js/location))
 
-(def url
-  (str (.-protocol js/location) "//" (.-hostname js/location)))
+(def browser-host
+  (.-hostname js/location))
 
 ; figwheel port
 (def figwheel-default-port "3449")
@@ -20,7 +20,7 @@
   (when (= figwheel-default-port browser-port)
     server-default-port))
 
-(def server-url
+(def server-host
   (if server-port
-    (str url ":" server-port)
-    url))
+    (str browser-host ":" server-port)
+    browser-host))

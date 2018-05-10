@@ -1,6 +1,7 @@
 .idea
 /*.log
 /target
+/resources/public/js
 /*-init.clj
 out
 /repl-ui.iml

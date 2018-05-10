@@ -185,7 +185,7 @@
       (sente/make-channel-socket-client!
         "/chsk"                                             ; Must match server Ring routing URL
         {:type   :auto
-         :host   config/server-url
+         :host   config/server-host
          :packer packer})]
 
   (println "server-connect chsk" chsk "\nch-recv" ch-recv "\nsend-fn" send-fn "\nstate" state)
@@ -225,6 +225,7 @@
 (reg-event-fx
   ::login
   (fn [cofx [_ login-options]]
+    (println "::login" login-options)
     {:db            (assoc (:db cofx) :proposed-user (:user login-options) :user-name nil)
      ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
      ::server-login {:login-options login-options}}))
