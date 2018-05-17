@@ -4,14 +4,18 @@ A [re-frame](https://github.com/Day8/re-frame) shared REPL
 
 ## Features
 
-- [X] Shared REPL
+- [X] Multi-user REPL
+- [X] Real-time keystrokes from all connected users
+- [X] Shared, accessible history
+- [X] Authenticated server access
 - [X] Color syntax for output
-- [X] simple parinfer integration
-- [ ] Simple exception viewing 
+- [X] Basic parinfer integration
+- [X] Simple exception viewing 
+- [ ] Cancel long running REPL evaluations
+- [ ] Add a library on demand
 - [ ] Filtered / expandable exception viewing 
 - [ ] Color syntax whilst editing
-- [ ] user selected parinfer mode
-- [ ] matching parens
+- [ ] Show matching / balancing parens
 
  
 
