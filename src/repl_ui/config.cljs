@@ -9,10 +9,10 @@
 (def browser-host
   (.-hostname js/location))
 
-; figwheel port
+; default figwheel port
 (def figwheel-default-port "3449")
 
-; default server port ... could be via ENV / property also
+; default local server port
 (def server-default-port "9090")
 
 (def server-port
@@ -21,6 +21,9 @@
     server-default-port))
 
 (def server-host
-  (if server-port
-    (str browser-host ":" server-port)
-    browser-host))
+  (if (not (= browser-host "localhost"))
+    "reptile.extemporay.io"
+    (if server-port
+      (str browser-host ":" server-port)
+      browser-host)))
+

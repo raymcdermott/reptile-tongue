@@ -98,7 +98,10 @@
       [format-exception result]
       [v-box :size "auto" :children
        [[label :label form]
-        [label :label (str "=> " (:val result))]
+        (map (fn [printable]
+               [label :label (:val printable)])
+             (drop-last (:eval-result result)))
+        [label :label (str "=> " (:val (last (:eval-result result))))]
         [gap :size "20px"]]])))
 
 (defn eval-panel

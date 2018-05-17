@@ -13,22 +13,6 @@
     [taoensso.sente.packers.transit :as sente-transit]
     [cljs.reader :as edn]))
 
-; use the reframe boot-strap thing to configure initial WS connection
-
-;; --- Obtain OIDC configuration for auth0
-;(defn boot-flow
-;  []
-;  {:first-dispatch [:do-configure-oidc]
-;   :rules          [{:when :seen? :events ::success-configure-oidc :dispatch [:auth0-lock-fx] :halt? true}
-;                    {:when :seen-any-of? :events [::fail-configure-oidc] :dispatch [:app-failed-state] :halt? true}]})
-;
-;(reg-event-fx :boot
-;              (fn [_ _]
-;                {:db         db/default-db
-;                 :async-flow (boot-flow)}))
-
-; TODO for DCD ... have this read a host URL from an Atom that is set by the login UI
-
 ;; (timbre/set-level! :trace) ; Uncomment for more logging
 
 (declare chsk ch-chsk chsk-send! chsk-state)
@@ -204,20 +188,11 @@
   ;; Now we have all of this set up we can start the router
   (start-router!))
 
-;;; Maybe we need to have the boot flow where we connect,
-;;; get some multi-method fired that produces an event to say the WS is available
-;;; and then we login
 (reg-fx
   ::server-login
   (fn [{:keys [login-options timeout]}]
-
-    ;; Move this out and have its own event
-    ;    (server-connect login-options)
-
-    ;; Have this started by flow
     (chsk-send! [:reptile/login login-options] (or timeout 3000)
                 (fn [result]
-                  (println "::server-login result" result)
                   (if (= result :login-ok)
                     (re-frame/dispatch [::login-result (:user login-options)])
                     (js/alert "Login failed"))))))
@@ -225,7 +200,6 @@
 (reg-event-fx
   ::login
   (fn [cofx [_ login-options]]
-    (println "::login" login-options)
     {:db            (assoc (:db cofx) :proposed-user (:user login-options) :user-name nil)
      ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
      ::server-login {:login-options login-options}}))
