@@ -19,7 +19,8 @@
 
 (def readonly-panel-style (merge (flex-child-style "1")
                                  default-style
-                                 {:background-color "#e8e8e8"
+                                 {:background-color "rgba(171, 171, 129, 0.1)"
+                                  :color            "gray"
                                   :resize           "none"}))
 
 (def other-editor-style (merge (flex-child-style "1")
@@ -29,7 +30,9 @@
 
 (def input-style (merge (flex-child-style "1")
                         default-style
-                        {:resize "none"}))
+                        {:color       "black"
+                         :font-weight "bolder"
+                         :resize      "none"}))
 
 (def eval-panel-style (merge (flex-child-style "1")
                              default-style))
