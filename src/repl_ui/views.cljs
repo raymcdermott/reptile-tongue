@@ -15,12 +15,17 @@
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
-                    :padding     "10px 20px 0px 20px"})
+                    :padding     "5px 5px 5px 5px"})
 
 (def readonly-panel-style (merge (flex-child-style "1")
                                  default-style
                                  {:background-color "#e8e8e8"
                                   :resize           "none"}))
+
+(def other-editor-style (merge (flex-child-style "1")
+                               default-style
+                               {:padding          "3px 3px 3px 3px"
+                                :background-color "lightyellow"}))
 
 (def input-style (merge (flex-child-style "1")
                         default-style
@@ -32,7 +37,7 @@
 (def eval-content-style (merge (flex-child-style "1")
                                {:resize    "none"
                                 :flex-flow "column-reverse nowrap"
-                                :padding   "10px 10px 10px 10px"}))
+                                :padding   "5px 5px 5px 5px"}))
 
 (def history-style {:padding "5px 5px 0px 10px"})
 
@@ -44,16 +49,15 @@
 (defn read-input-panel
   [user-name]
   (let [current-form @(re-frame/subscribe [::subs/user-keystrokes (keyword user-name)])]
-    [v-box :size "auto" :children
-     [[:textarea
-       {:id          (str "read-input-panel-" user-name)
-        :placeholder user-name
-        :style       readonly-panel-style
-        :disabled    true
-        :on-change   #(-> nil)
-        :value       (str user-name "\n"
-                          (when current-form
-                            (:text (parinfer/paren-mode current-form))))}]]]))
+    [h-box :size "auto" :children
+     [[:textarea {:id          (str "read-input-panel-" user-name)
+                  :placeholder user-name
+                  :style       readonly-panel-style
+                  :disabled    true
+                  :on-change   #(-> nil)
+                  :value       (when current-form
+                                 (:text (parinfer/paren-mode current-form)))}]
+      [label :style other-editor-style :label user-name]]]))
 
 (defn format-trace
   [via trace]
@@ -80,27 +84,39 @@
                :on-click #(reset! show-trace? false)]]]]])]])))
 
 (defn format-exception
-  [{:keys [val original-form]}]
+  [val form]
   (let [{:keys [cause via trace]} (edn/read-string val)]
     [v-box :size "auto"
-     :children [[label :label original-form]
+     :children [[label :label form]
                 [h-box :size "auto"
                  :children [[label :style {:color "red"} :label (str "=> " cause)]
                             [gap :size "20px"]
                             [format-trace via trace]]]
                 [gap :size "20px"]]]))
 
+(defn merge-quoted-strings
+  [strings]
+  (str "\""
+       (apply str
+              (interpose " " (map (fn [s] (apply str (remove #(= \" %) s)))
+                                  strings)))
+       "\""))
+
 (defn reinsert-strings
-  "Hack to paste quotes back into strings"
+  "Terrible HACK to paste quotes back into strings"
   [format-list]
   (loop [result      []
-         hiccup-list format-list]
+         hiccup-list format-list
+         prev-sym?   false]
     (if-let [item (first hiccup-list)]
       (let [remainder     (rest hiccup-list)
             maybe-updated (if (symbol? item) (str "\"" item "\"") item)]
         (if (instance? PersistentVector item)
-          (recur (conj result (reinsert-strings item)) remainder)
-          (recur (conj result maybe-updated) remainder)))
+          (recur (conj result (reinsert-strings item)) remainder (symbol? item))
+          (if (and (symbol? item) prev-sym?)
+            (recur (conj (vec (drop-last result)) (merge-quoted-strings [(last result) maybe-updated])) remainder
+                   (symbol? item))
+            (recur (conj result maybe-updated) remainder (symbol? item)))))
       result)))
 
 (defn prettify
@@ -112,13 +128,13 @@
 
 (defn format-result
   [result]
-  (let [eval-result (:eval-result result)
-        smart-val   (prettify (:pretty result))             ; Hack
-        val         (try (edn/read-string (:val eval-result))
-                         (catch js/Error _ (:val eval-result)))
-        form        (:form (last eval-result))]
+  (let [eval-result  (:eval-result result)
+        smart-val    (prettify (:pretty result))            ; Hack
+        returned-val (:val (first eval-result))
+        val          (try (edn/read-string returned-val)
+                          (catch js/Error _ returned-val))]
     (if (and (map? val) (= #{:cause :via :trace} (set (keys val))))
-      [format-exception (first eval-result)]
+      [format-exception returned-val smart-val]
       [v-box :size "auto" :children
        [[label :label smart-val]
         (map (fn [printable]
@@ -243,7 +259,7 @@
   [user-name]
   (let [status @(re-frame/subscribe [::subs/status])]
     [h-box
-     :size "40px" :gap "20px" :style status-style
+     :size "30px" :gap "20px" :style status-style
      :children
      [[label :label (str "User: " user-name)]
       [line]
@@ -277,34 +293,38 @@
   (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
         form-data  (reagent/atom {:user   "?"
                                   :secret "6738f275-513b-4ab9-8064-93957c4b3f35"})
-        process-ok (fn []
-                     (re-frame/dispatch [::events/login @form-data]))]
+        process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
     (fn [] (when-not logged-in
              [modal-panel
               :backdrop-color "lightblue"
               :backdrop-opacity 0.1
               :child [login-form form-data process-ok]]))))
 
-(defn box-panels
-  []
-  (let [user-name     @(re-frame/subscribe [::subs/user-name])
-        other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
-    [v-split :initial-split "40%"
-     :panel-1 [read-input-panel (or (nth other-editors 0 "?"))]
-     :panel-2 [edit-panel user-name]]))
+(defn read-panels
+  [other-editors]
+  (when other-editors
+    [v-box :size "auto"
+     :children (vec (map #(read-input-panel %) other-editors))]))
 
+(defn main-panels
+  [user-name other-editors]
+  [v-box :height "625px" :children
+   [[v-split :splitter-size "2px" :initial-split "30%"
+     :panel-1 [eval-panel]
+     :panel-2 (if (empty? other-editors)
+                [edit-panel user-name]
+                [v-split :initial-split "60%"
+                 :panel-1 [read-panels other-editors]
+                 :panel-2 [edit-panel user-name]])]
+    [gap :size "3px"]
+    [status-bar user-name]]])
 
 (defn main-panel
   []
-  (let [user-name @(re-frame/subscribe [::subs/user-name])]
+  (let [user-name     @(re-frame/subscribe [::subs/user-name])
+        other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
     (if user-name
-      [v-box :height "700px"
-       :children
-       [[v-split :splitter-size "3px"
-         :panel-1 [eval-panel]
-         :panel-2 [box-panels]]
-        [gap :size "20px"]
-        [status-bar user-name]]]
+      [main-panels user-name other-editors]
       [login])))
 
 
