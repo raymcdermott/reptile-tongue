@@ -298,7 +298,7 @@
   []
   (let [user-name @(re-frame/subscribe [::subs/user-name])]
     (if user-name
-      [v-box :height "1000px"
+      [v-box :height "700px"
        :children
        [[v-split :splitter-size "3px"
          :panel-1 [eval-panel]
