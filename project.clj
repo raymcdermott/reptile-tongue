@@ -12,6 +12,7 @@
                  [com.taoensso/sente "1.12.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.cognitect/transit-cljs "0.8.243"]
+                 [com.rpl/specter "1.1.1"]
                  [binaryage/oops "0.5.8"]
                  [parinfer-cljs "3.11.0-0"]
                  [cljsjs/rangy-core "1.3.0-1"]
