@@ -40,7 +40,7 @@
     (re-frame/dispatch [::network-status (:open? new-state-map)])
     (if (:first-open? new-state-map)
       (println "Channel socket successfully established!: %s" new-state-map)
-      (println "XXXX Channel socket state change: %s" new-state-map))))
+      (println "Channel socket state change: %s" new-state-map))))
 
 (reg-event-db
   ::update-forms
@@ -155,12 +155,23 @@
     (let [eval-results (or (:eval-results db) [])]
       (assoc db :eval-results (conj eval-results eval-result)))))
 
+
+(reg-fx
+  ::send-repl-eval
+  (fn [forms]
+    (doall
+      (map (fn
+             [form]
+             (when-not (str/blank? form)
+               (chsk-send! [:reptile/repl {:form form}]
+                           (or (:timeout form) 3000)))) forms))))
+
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
-    (when-not (str/blank? form-to-eval)
-      (chsk-send! [:reptile/repl {:form form-to-eval}] (or (:timeout form-to-eval) 3000))
-      {:db (assoc (:db cofx) :form-to-eval form-to-eval :eval-result nil)})))
+    ;; TODO ... check form-to-eval for multiple forms so that they can be copy / pasted
+    {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
+     ::send-repl-eval [form-to-eval]}))
 
 (reg-event-db
   ::login-result
@@ -208,4 +219,14 @@
     {:db            (assoc (:db cofx) :proposed-user (:user login-options) :user-name nil)
      ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
      ::server-login {:login-options login-options}}))
+
+(reg-event-fx
+  ::add-lib
+  (fn [cofx [_ {:keys [name version] :as lib}]]
+    (println "sending eval add-lib for name" name "version" version)
+    (let [use-ns   "(use (quote clojure.tools.deps.alpha.repl))"
+          ; TODO - conform to a Maven | GIT | ... version / trim string
+          lib-spec (str "(add-lib (quote " name ") {:mvn/version \"" version "\"})")]
+      {:db              (assoc (:db cofx) :proposed-lib lib)
+       ::send-repl-eval [use-ns lib-spec]})))
 

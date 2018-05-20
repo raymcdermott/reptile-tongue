@@ -11,10 +11,10 @@ A [re-frame](https://github.com/Day8/re-frame) shared REPL
 - [X] Color syntax for output
 - [X] Basic parinfer integration
 - [X] Simple exception viewing 
+- [X] Add a library on demand
 - [ ] Incremental feedback on long running REPL evaluations
 - [ ] Cancel long running REPL evaluations
 - [ ] Per user name spaces
-- [ ] Add a library on demand
 - [ ] Filtered / expandable exception viewing 
 - [ ] Color syntax whilst editing
 - [ ] Show matching / balancing parens
