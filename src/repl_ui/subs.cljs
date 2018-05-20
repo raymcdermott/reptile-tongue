@@ -23,6 +23,11 @@
     (:status db)))
 
 (re-frame/reg-sub
+  ::network-status
+  (fn [db]
+    (:network-status db)))
+
+(re-frame/reg-sub
   ::key-down
   (fn [db]
     ; do the mapping here (91 = Cmd-, 17 Ctrl-, 18 Alt-)

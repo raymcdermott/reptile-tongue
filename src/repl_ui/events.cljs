@@ -37,10 +37,10 @@
 (defmethod -event-msg-handler :chsk/state
   [{:keys [?data]}]
   (let [[_ new-state-map] (have vector? ?data)]
+    (re-frame/dispatch [::network-status (:open? new-state-map)])
     (if (:first-open? new-state-map)
-      ; TODO maybe alert if connection gets dropped
       (println "Channel socket successfully established!: %s" new-state-map)
-      (println "Channel socket state change: %s" new-state-map))))
+      (println "XXXX Channel socket state change: %s" new-state-map))))
 
 (reg-event-db
   ::update-forms
@@ -118,6 +118,11 @@
       (chsk-send!
         [:reptile/keystrokes {:form current-form :user-name user-name}]
         (or timeout 3000)))))
+
+(reg-event-db
+  ::network-status
+  (fn [db [_ status]]
+    (assoc db :network-status status)))
 
 (reg-event-db
   ::update-status

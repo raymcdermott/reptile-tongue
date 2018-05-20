@@ -25,8 +25,11 @@
 
 (def other-editor-style (merge (flex-child-style "1")
                                default-style
-                               {:padding          "3px 3px 3px 3px"
-                                :background-color "lightyellow"}))
+                               {:font-size        "10px"
+                                :color            "gray"
+                                :font-weight      "lighter"
+                                :padding          "3px 3px 3px 3px"
+                                :background-color "rgba(171, 171, 129, 0.1)"}))
 
 (def input-style (merge (flex-child-style "1")
                         default-style
@@ -44,7 +47,10 @@
 
 (def history-style {:padding "5px 5px 0px 10px"})
 
-(def status-style (merge default-style {:color "lightgrey"}))
+(def status-style (merge (dissoc default-style :border)
+                         {:font-size   "10px"
+                          :font-weight "lighter"
+                          :color       "lightgrey"}))
 
 ; TODO use background image
 ; :background-image "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='50px' width='120px'><text x='0' y='15' fill='red' font-size='20'>I love SVG!</text></svg>"
@@ -205,13 +211,17 @@
          [panel-name]
          (let [parinfer-form   @(re-frame/subscribe [::subs/parinfer-form])
                parinfer-cursor @(re-frame/subscribe [::subs/parinfer-cursor])
-               key-down        @(re-frame/subscribe [::subs/key-down])]
+               key-down        @(re-frame/subscribe [::subs/key-down])
+               network-status  @(re-frame/subscribe [::subs/network-status])
+               text-style      (if network-status
+                                 input-style
+                                 (assoc input-style :font-weight "lighter" :color "lightgrey"))]
            (reset! new-cursor parinfer-cursor)
            [:textarea
             {:id            panel-name
              :auto-complete false
              :placeholder   (str "(your clojure here) - " panel-name)
-             :style         input-style
+             :style         text-style
 
              ;; Dispatch on Alt-Enter
              :on-key-down   #(re-frame/dispatch [::events/key-down (.-which %)])
@@ -244,31 +254,44 @@
 
 (defn edit-panel
   [panel-name]
-  (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
+  (let [eval-results   @(re-frame/subscribe [::subs/eval-results])
+        network-status @(re-frame/subscribe [::subs/network-status])]
     [v-box :size "auto"
      :children
      [[box :size "auto" :child
        [scroller :child
         [edit-component panel-name]]]
       [gap :size "5px"]
-      [h-box
-       :children
-       [[button :label "Eval (or Alt-Enter)" :on-click
-         #(re-frame/dispatch [::events/eval (.-value (.getElementById js/document panel-name))])]
-        [gap :size "30px"]
-        (visual-history eval-results)]]]]))
+      (when network-status
+        [h-box
+         :children
+         [[button :style {:font-size "10px" :font-weight "bolder" :color "gray"}
+           :label "Eval (or Alt-Enter)"
+           :on-click
+           #(re-frame/dispatch [::events/eval (.-value (.getElementById js/document panel-name))])]
+          [gap :size "30px"]
+          (visual-history eval-results)]])]]))
 
 (defn status-bar
   [user-name]
-  (let [status @(re-frame/subscribe [::subs/status])]
-    [h-box
-     :size "30px" :gap "20px" :style status-style
-     :children
-     [[label :label (str "User: " user-name)]
-      [line]
-      [label :label "Edit Status:"]
-      (let [style {:color (if status "red" "green")}]
-        [label :style style :label (or status "OK")])]]))
+  (let [edit-status    @(re-frame/subscribe [::subs/status])
+        edit-style     {:color (if edit-status "red" "rgba(127, 191, 63, 0.32)")}
+        network-status @(re-frame/subscribe [::subs/network-status])
+        network-style  {:color (if network-status "rgba(127, 191, 63, 0.32)" "red")}]
+    [v-box :children
+     [[line]
+      [h-box :size "20px" :style status-style :gap "20px" :align :center :children
+       [[label :label (str "User: " user-name)]
+        [line]
+        [label :style network-style :label "Connect Status:"]
+        (if network-status
+          [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
+          [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])
+        [line]
+        [label :style edit-style :label "Edit Status:"]
+        [label :style edit-style :label (or edit-status "OK")]]]
+      [line]]]))
+
 
 (defn login-form
   [form-data process-ok]
@@ -312,7 +335,7 @@
 (defn main-panels
   [user-name other-editors]
   [v-box :height "625px" :children
-   [[v-split :splitter-size "2px" :initial-split "30%"
+   [[v-split :splitter-size "5px" :initial-split "35%"
      :panel-1 [eval-panel]
      :panel-2 (if (empty? other-editors)
                 [edit-panel user-name]
