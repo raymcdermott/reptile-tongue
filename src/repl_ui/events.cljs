@@ -155,23 +155,23 @@
     (let [eval-results (or (:eval-results db) [])]
       (assoc db :eval-results (conj eval-results eval-result)))))
 
-
 (reg-fx
   ::send-repl-eval
-  (fn [forms]
+  (fn [[source forms]]
     (doall
       (map (fn
              [form]
              (when-not (str/blank? form)
-               (chsk-send! [:reptile/repl {:form form}]
-                           (or (:timeout form) 3000)))) forms))))
+               (chsk-send! [:reptile/repl {:form form :source source}]
+                           (or (:timeout form) 3000))))
+           forms))))
 
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
     ;; TODO ... check form-to-eval for multiple forms so that they can be copy / pasted
     {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
-     ::send-repl-eval [form-to-eval]}))
+     ::send-repl-eval [:user [form-to-eval]]}))
 
 (reg-event-db
   ::login-result
@@ -220,13 +220,16 @@
      ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
      ::server-login {:login-options login-options}}))
 
+; TODO - trim strings
 (reg-event-fx
   ::add-lib
-  (fn [cofx [_ {:keys [name version] :as lib}]]
-    (println "sending eval add-lib for name" name "version" version)
+  (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]
     (let [use-ns   "(use (quote clojure.tools.deps.alpha.repl))"
-          ; TODO - conform to a Maven | GIT | ... version / trim string
-          lib-spec (str "(add-lib (quote " name ") {:mvn/version \"" version "\"})")]
+          lib-spec (str "(add-lib (quote " name ") {"
+                        (if maven
+                          (str ":mvn/version \"" version "\"")
+                          (str ":git/url \"" url "\" :sha \"" sha "\""))
+                        "})")]
       {:db              (assoc (:db cofx) :proposed-lib lib)
-       ::send-repl-eval [use-ns lib-spec]})))
+       ::send-repl-eval [:system [use-ns lib-spec]]})))
 

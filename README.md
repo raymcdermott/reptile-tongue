@@ -18,7 +18,6 @@ A [re-frame](https://github.com/Day8/re-frame) shared REPL
 - [ ] Filtered / expandable exception viewing 
 - [ ] Color syntax whilst editing
 - [ ] Show matching / balancing parens
-
  
 
 ## Development Mode
