@@ -1,6 +1,6 @@
-# repl-ui
+# reptile-tongue
 
-A [re-frame](https://github.com/Day8/re-frame) shared REPL
+A [re-frame](https://github.com/Day8/re-frame) for the REPtiLE shared REPL
 
 ## Features
 
@@ -18,7 +18,12 @@ A [re-frame](https://github.com/Day8/re-frame) shared REPL
 - [ ] Filtered / expandable exception viewing 
 - [ ] Color syntax whilst editing
 - [ ] Show matching / balancing parens
- 
+
+## Configuration
+
+The location of the back-end server is configurable.
+
+TBD
 
 ## Development Mode
 
