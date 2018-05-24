@@ -169,6 +169,13 @@
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
+    ;; TODO now... read the form and give back any errors ... or send through as EDN (doh!)
+
+    (let [ingested-form (try {:form (edn/read-string form-to-eval)}
+                             (catch :default some-error {:error (str "ERR:" some-error)
+                                                         :form  form-to-eval}))]
+      (println "ingested form" ingested-form))
+
     ;; TODO ... check form-to-eval for multiple forms so that they can be copy / pasted
     {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
      ::send-repl-eval [:user [form-to-eval]]}))
@@ -220,7 +227,7 @@
      ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
      ::server-login {:login-options login-options}}))
 
-; TODO - trim strings
+; TODO - trim strings / spec
 (reg-event-fx
   ::add-lib
   (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]

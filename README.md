@@ -1,6 +1,6 @@
 # reptile-tongue
 
-A [re-frame](https://github.com/Day8/re-frame) for the REPtiLE shared REPL
+A [re-frame](https://github.com/Day8/re-frame) based SPA for the REPtiLE shared REPL
 
 ## Features
 
