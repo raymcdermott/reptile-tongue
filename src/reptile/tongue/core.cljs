@@ -1,8 +1,8 @@
-(ns repl-ui.core
+(ns reptile.tongue.core
   (:require [reagent.core :as reagent]
             [re-frame.core :as re-frame]
-            [repl-ui.events :as events]
-            [repl-ui.views :as views]))
+            [reptile.tongue.events :as events]
+            [reptile.tongue.views :as views]))
 
 
 (defn mount-root []

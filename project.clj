@@ -1,4 +1,4 @@
-(defproject repl-ui "0.1.0-SNAPSHOT"
+(defproject reptile/tongue "0.1.0-SNAPSHOT"
 
   :min-lein-version "2.5.3"
 
@@ -12,7 +12,6 @@
                  [com.taoensso/sente "1.12.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.cognitect/transit-cljs "0.8.243"]
-                 [com.rpl/specter "1.1.1"]
                  [binaryage/oops "0.5.8"]
                  [parinfer-cljs "3.11.0-0"]
                  [cljsjs/rangy-core "1.3.0-1"]
@@ -36,8 +35,8 @@
 
   :cljsbuild {:builds [{:id           "dev"
                         :source-paths ["src"]
-                        :figwheel     {:on-jsload "repl-ui.core/mount-root"}
-                        :compiler     {:main                 repl-ui.core
+                        :figwheel     {:on-jsload "reptile.tongue.core/mount-root"}
+                        :compiler     {:main                 reptile.tongue.core
                                        :output-to            "resources/public/js/compiled/app.js"
                                        :output-dir           "resources/public/js/compiled/out"
                                        :asset-path           "js/compiled/out"
@@ -47,7 +46,7 @@
 
                        {:id           "min"
                         :source-paths ["src"]
-                        :compiler     {:main            repl-ui.core
+                        :compiler     {:main            reptile.tongue.core
                                        :output-to       "resources/public/js/compiled/app.js"
                                        :optimizations   :advanced
                                        :closure-defines {goog.DEBUG false}

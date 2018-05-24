@@ -1,4 +1,4 @@
-(ns repl-ui.dom
+(ns reptile.tongue.dom
   (:require [cljs.spec.alpha]
             [goog.object :as gobj]))
 

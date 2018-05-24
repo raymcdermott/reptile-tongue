@@ -1,14 +1,14 @@
-(ns repl-ui.events
+(ns reptile.tongue.events
   (:require
     [cljs.core.specs.alpha]
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
-    [repl-ui.config :as config]
-    [repl-ui.db :as db]
+    [reptile.tongue.config :as config]
+    [reptile.tongue.db :as db]
     [clojure.string :as str]
     [parinfer-cljs.core :as parinfer]
-    [cljs.core.async :as async :refer (<! >! put! chan go go-loop)]
-    [taoensso.encore :as encore :refer (have have?)]
-    [taoensso.timbre :as timbre :refer (tracef debugf infof warnf errorf)]
+    [cljs.core.async :refer (<! >! put! chan go go-loop)]
+    [taoensso.encore :refer (have have?)]
+    [taoensso.timbre :refer (tracef debugf infof warnf errorf)]
     [taoensso.sente :as sente :refer (cb-success?)]
     [taoensso.sente.packers.transit :as sente-transit]
     [cljs.reader :as edn]))

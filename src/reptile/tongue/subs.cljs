@@ -1,4 +1,4 @@
-(ns repl-ui.subs
+(ns reptile.tongue.subs
   (:require [re-frame.core :as re-frame]))
 
 (re-frame/reg-sub

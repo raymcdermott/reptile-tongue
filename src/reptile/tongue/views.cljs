@@ -1,18 +1,15 @@
-(ns repl-ui.views
+(ns reptile.tongue.views
   (:require [re-frame.core :as re-frame]
             [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
                                  md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
                                  radio-button p]]
             [re-com.splits :refer [hv-split-args-desc]]
-            [repl-ui.events :as events]
-            [repl-ui.subs :as subs]
+            [reptile.tongue.events :as events]
+            [reptile.tongue.subs :as subs]
             [cljs.reader :as edn]
             [reagent.core :as reagent]
             [parinfer-cljs.core :as parinfer]
-            [clojure.string :as str]
-            [com.rpl.specter :as specter]
-            [goog.object :as go]
-            [goog.string :as gs]))
+            [clojure.string :as str]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"

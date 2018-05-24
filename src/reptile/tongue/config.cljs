@@ -1,4 +1,4 @@
-(ns repl-ui.config)
+(ns reptile.tongue.config)
 
 (def debug?
   ^boolean goog.DEBUG)
