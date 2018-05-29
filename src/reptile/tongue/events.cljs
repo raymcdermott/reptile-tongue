@@ -11,7 +11,9 @@
     [taoensso.timbre :refer (tracef debugf infof warnf errorf)]
     [taoensso.sente :as sente :refer (cb-success?)]
     [taoensso.sente.packers.transit :as sente-transit]
-    [cljs.reader :as edn]))
+    [cljs.reader :as rdr]
+    [cljs.tools.reader.reader-types :as treader-types]
+    [cljs.tools.reader :as treader]))
 
 ;; (timbre/set-level! :trace) ; Uncomment for more logging
 
@@ -162,23 +164,23 @@
       (map (fn
              [form]
              (when-not (str/blank? form)
-               (chsk-send! [:reptile/repl {:form form :source source}]
+               (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
                            (or (:timeout form) 3000))))
            forms))))
+
+(defn read-forms
+  "Read the string in the REPL buffer to obtain N forms (rather than just the first!)"
+  [repl-forms]
+  (let [pbr      (treader-types/string-push-back-reader repl-forms)
+        sentinel ::eof]
+    (take-while #(not= sentinel %)
+                (repeatedly #(rdr/read {:eof sentinel} pbr)))))
 
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
-    ;; TODO now... read the form and give back any errors ... or send through as EDN (doh!)
-
-    (let [ingested-form (try {:form (edn/read-string form-to-eval)}
-                             (catch :default some-error {:error (str "ERR:" some-error)
-                                                         :form  form-to-eval}))]
-      (println "ingested form" ingested-form))
-
-    ;; TODO ... check form-to-eval for multiple forms so that they can be copy / pasted
     {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
-     ::send-repl-eval [:user [form-to-eval]]}))
+     ::send-repl-eval [:user (read-forms form-to-eval)]}))
 
 (reg-event-db
   ::login-result
@@ -239,4 +241,6 @@
                         "})")]
       {:db              (assoc (:db cofx) :proposed-lib lib)
        ::send-repl-eval [:system [use-ns lib-spec]]})))
+
+
 

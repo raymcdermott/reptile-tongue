@@ -9,6 +9,7 @@
                  [org.clojure/clojurescript "1.10.238"]
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/tools.logging "0.4.0"]
+                 [figwheel-sidecar "0.5.5"]
                  [com.taoensso/sente "1.12.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.cognitect/transit-cljs "0.8.243"]
@@ -21,6 +22,8 @@
                  [re-com "2.1.0"]
                  [day8.re-frame/async-flow-fx "0.0.8"]
                  [com.andrewmcveigh/cljs-time "0.5.2"]]
+
+  :source-paths ["src"]
 
   :plugins [[lein-pprint "1.2.0"]
             [lein-ancient "0.6.14"]
