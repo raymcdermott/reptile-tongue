@@ -9,7 +9,9 @@
             [cljs.reader :as edn]
             [reagent.core :as reagent]
             [parinfer-cljs.core :as parinfer]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [cljs.reader :as rdr]
+            [cljs.tools.reader.reader-types :as treader-types]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
@@ -70,32 +72,28 @@
   (let [show-trace? (reagent/atom false)]
     (fn
       []
-      [v-box
-       :children
-       [[md-icon-button :md-icon-name "zmdi-zoom-in"
-         :tooltip (:at (first via))
-         :on-click #(reset! show-trace? true)]
+      [v-box :children
+       [[md-icon-button :md-icon-name "zmdi-zoom-in" :tooltip (first via) :on-click #(reset! show-trace? true)]
         (when @show-trace?
-          [modal-panel
-           :backdrop-on-click #(reset! show-trace? false)
+          [modal-panel :backdrop-on-click #(reset! show-trace? false)
            :child
-           [scroller :child
+           [scroller :height "85vh"
+            :child
             [v-box :size "auto"
              :children
-             [(map (fn [element]
-                     [label :label (str element)])
-                   trace)
+             [[label :label (:type (first via))]
+              (map (fn [element] [label :label (str element)]) trace)
               [gap :size "20px"]
-              [button :label "Done (or click the backdrop)"
-               :on-click #(reset! show-trace? false)]]]]])]])))
+              [button :label "Done (or click the backdrop)" :on-click #(reset! show-trace? false)]]]]])]])))
 
 (defn format-exception
   [val form]
   (let [{:keys [cause via trace]} (edn/read-string val)]
+    (println "cause" cause "via" (:type (first via)))
     [v-box :size "auto"
      :children [[label :label form]
                 [h-box :size "auto"
-                 :children [[label :style {:color "red"} :label (str "=> " cause)]
+                 :children [[label :style {:color "red"} :label (str "=> " (or cause (:type (first via)) "??"))]
                             [gap :size "20px"]
                             [format-trace via trace]]]
                 [gap :size "20px"]]]))
@@ -124,9 +122,11 @@
   (let [eval-result  (:prepl-response result)
         pretty-val   (prettify (:highlighted-form result))
         source       (:source result)
-        returned-val (:val (first eval-result))
+        returned-val (:val (last eval-result))
         val          (try (edn/read-string returned-val)
-                          (catch js/Error _ returned-val))]
+                          (catch js/Error e e))]
+    ;(when-let [spec-fail-data (:data (last eval-result))]
+    ;  (println "spec-fail:" spec-fail-data))
     (if (and (map? val) (= #{:cause :via :trace} (set (keys val))))
       [format-exception returned-val pretty-val]
       [v-box :size "auto" :children
@@ -138,7 +138,7 @@
         (map (fn [printable]
                [label :label (:val printable)])
              (drop-last eval-result))
-        [label :label (str "=> " (:val (last eval-result)))]
+        [label :label (str "=> " (:val (last eval-result)))] ; Properly format the output
         [gap :size "20px"]]])))
 
 (defn eval-panel
@@ -242,7 +242,7 @@
       []
       (when @eval-results
         [h-box :size "auto" :align :center :style history-style :children
-         (reverse (map format-history-item (distinct (map :original-form @eval-results))))]))))
+         (reverse (map format-history-item (distinct (map :form @eval-results))))]))))
 
 
 (defn lib-type
@@ -318,8 +318,8 @@
 (defn edit-panel
   [panel-name]
   (let [show-add-lib? (reagent/atom false)
-        lib-data      (reagent/atom {:name    "snake/tongue"
-                                     :version "1.0.0"
+        lib-data      (reagent/atom {:name    "clojurewerkz/money"
+                                     :version "1.10.0"
                                      :url     "https://github/iguana"
                                      :sha     "888abcd888888b5cba88882b8888bdf59f9d88b6"
                                      :maven   true})
