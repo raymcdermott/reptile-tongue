@@ -14,7 +14,7 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.cognitect/transit-cljs "0.8.243"]
                  [binaryage/oops "0.5.8"]
-                 [parinfer-cljs "3.11.0-0"]
+                 [parinfer-cljs "1.5.1-0"]
                  [cljsjs/rangy-core "1.3.0-1"]
                  [cljsjs/rangy-textrange "1.3.0-1"]
                  [reagent "0.7.0"]
