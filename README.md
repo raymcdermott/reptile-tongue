@@ -25,25 +25,18 @@ The location of the back-end server is configurable.
 
 TBD
 
-## Development Mode
+## Development
 
 ### Run application:
 
 ```
-lein clean
-lein figwheel dev
+clojure -A:fig -b dev -r
 ```
 
 Figwheel will automatically push cljs changes to the browser.
 
-Wait a bit, then browse to [http://localhost:3449](http://localhost:3449).
+Wait a bit, then browse to [http://localhost:9500](http://localhost:9500).
 
 ## Production Build
 
-
-To compile clojurescript to javascript:
-
-```
-lein clean
-lein cljsbuild once min
-```
+TBD
