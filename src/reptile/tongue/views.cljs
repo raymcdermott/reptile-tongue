@@ -302,9 +302,6 @@
              [[title :label "Add a dependency to the REPL" :level :level2]
               [v-box
                :gap "10px"
-
-               ;; TODO enable GIT | Maven | Disk lib specs
-
                :children [[lib-type lib-data]
                           [dep-name lib-data]               ; cond
                           (if (:maven @lib-data)

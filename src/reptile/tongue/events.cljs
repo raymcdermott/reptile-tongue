@@ -229,15 +229,14 @@
      ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
      ::server-login {:login-options login-options}}))
 
-; TODO - trim strings / spec
 (reg-event-fx
   ::add-lib
   (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]
     (let [use-ns   "(use (quote clojure.tools.deps.alpha.repl))"
-          lib-spec (str "(add-lib (quote " name ") {"
+          lib-spec (str "(add-lib (quote " (.trim name) ") {"
                         (if maven
-                          (str ":mvn/version \"" version "\"")
-                          (str ":git/url \"" url "\" :sha \"" sha "\""))
+                          (str ":mvn/version \"" (.trim version) "\"")
+                          (str ":git/url \"" (.trim url) "\" :sha \"" (.trim sha) "\""))
                         "})")]
       {:db              (assoc (:db cofx) :proposed-lib lib)
        ::send-repl-eval [:system [use-ns lib-spec]]})))

@@ -1,19 +1,16 @@
 (ns reptile.tongue.config)
 
-(def debug?
-  ^boolean goog.DEBUG)
+(def debug? ^boolean goog.DEBUG)
 
-(def browser-port
-  (.-port js/location))
+(def browser-port (.-port js/location))
 
-(def browser-host
-  (.-hostname js/location))
+(def browser-host (.-hostname js/location))
 
 ; default figwheel port
-(def figwheel-default-port "3449")
+(def figwheel-default-port "9500")
 
 ; default local server port
-(def server-default-port "9090")
+(def server-default-port "8888")
 
 (def server-port
   ; use the default WS server port when serving from figwheel
