@@ -1,8 +1,8 @@
 .idea
 /*.log
 /target
-/resources/public/js
+resources/public/js
 /*-init.clj
 out
-/repl-ui.iml
+/tongue.iml
 /.nrepl-port
