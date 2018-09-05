@@ -8,9 +8,19 @@
       (remove #{me} (set editors)))))
 
 (re-frame/reg-sub
+  ::user-keystrokes
+  (fn [db [_ user]]
+    (get-in db [:current-forms user])))
+
+(re-frame/reg-sub
   ::user-name
   (fn [db]
     (:user-name db)))
+
+(re-frame/reg-sub
+  ::form-from-history
+  (fn [db]
+    (:form-from-history db)))
 
 (re-frame/reg-sub
   ::eval-results
@@ -39,17 +49,24 @@
     (:name db)))
 
 (re-frame/reg-sub
+  ::current-form
+  (fn [db]
+    (:current-form db)))
+
+;; DELETE
+(re-frame/reg-sub
   ::edit-keystrokes
-  ;; integrate par-edit here for the editor?
   (fn [db]
     (:current-form-edits db)))
 
+;; DELETE
 (re-frame/reg-sub
   ::parinfer-form
   ;; integrate parinfer here for the editor?
   (fn [db]
     (:parinfer-form db)))
 
+;; DELETE
 (re-frame/reg-sub
   ::parinfer-cursor
   (fn [db]
@@ -57,12 +74,6 @@
       {:cursor-x    cursor-x
        :cursor-line cursor-line
        :text        text})))
-
-(re-frame/reg-sub
-  ::user-keystrokes
-  ;; integrate par-edit here for other users?
-  (fn [db [_ user]]
-    (get-in db [:current-forms user])))
 
 (re-frame/reg-sub
   ::logged-in

@@ -1439,3 +1439,16 @@ code {
 .syntax pre .conditional {
     color: #859900;
 }
+
+/*--------------------
+  Parinfer CSS
+--------------------*/
+
+.parinfer-error {
+  background: #FFBEBE;
+  color: black !important;
+}
+
+.parinfer-paren-trail {
+  opacity: 0.4;
+}

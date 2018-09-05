@@ -5,15 +5,13 @@
     [reptile.tongue.config :as config]
     [reptile.tongue.db :as db]
     [clojure.string :as str]
-    [parinfer-cljs.core :as parinfer]
     [cljs.core.async :refer (<! >! put! chan go go-loop)]
     [taoensso.encore :refer (have have?)]
     [taoensso.timbre :refer (tracef debugf infof warnf errorf)]
     [taoensso.sente :as sente :refer (cb-success?)]
     [taoensso.sente.packers.transit :as sente-transit]
     [cljs.reader :as rdr]
-    [cljs.tools.reader.reader-types :as treader-types]
-    [cljs.tools.reader :as treader]))
+    [cljs.tools.reader.reader-types :as treader-types]))
 
 ;; (timbre/set-level! :trace) ; Uncomment for more logging
 
@@ -44,10 +42,13 @@
       (println "Channel socket successfully established!: %s" new-state-map)
       (println "Channel socket state change: %s" new-state-map))))
 
-(reg-event-db
+;; Route changes to the editor code-mirror
+(reg-event-fx
   ::update-forms
-  (fn [db [_ update]]
-    (assoc-in db [:current-forms (keyword (:user update))] (:form update))))
+  (fn [{:keys [db]} [_ update]]
+    (when-let [code-mirror (:code-mirror (first (filter #(= (:editor %) (:user update))
+                                                        (:editor-code-mirrors db))))]
+      (.setValue code-mirror (:form update)))))
 
 (reg-event-db
   ::editors
@@ -56,7 +57,7 @@
 
 (defmethod -event-msg-handler :chsk/recv
   [{:keys [?data]}]
-  ; TODO - This works but I think it's the wrong way to send / process custom events
+  ; TODO - This works but I think it might be the wrong way to send / process custom events
   (cond
     (= (first ?data) :fast-push/keystrokes)
     (re-frame/dispatch [::update-forms (first (rest ?data))])
@@ -66,6 +67,9 @@
 
     (= (first ?data) :fast-push/eval)
     (re-frame/dispatch [::eval-result (first (rest ?data))])
+
+    (= (first ?data) :chsk/ws-ping)
+    nil
 
     :else (println "Unhandled data push: %s" (first ?data))))
 
@@ -110,7 +114,6 @@
   (fn [db [_ key-code]]
     (assoc db :key-press key-code)))
 
-
 ;; Text
 
 (reg-fx
@@ -131,31 +134,54 @@
   (fn [db [_ status]]
     (assoc db :status status)))
 
-(defn apply-parinfer
-  [{:keys [text success? error]}]
-  (when-not success? (re-frame/dispatch [::update-status (:message error)]))
-  text)
-
 (reg-event-fx
   ::current-form
-  (fn [{:keys [db]} [_ current-form cursor-line cursor-pos prev-cursor-line prev-cursor-x]]
-    (let [enter-pressed?  (= (:key-press db) 13)
-          parinfer-mode   (if enter-pressed? parinfer/paren-mode parinfer/indent-mode)
-          parinfer-result (parinfer-mode current-form {:cursor-line      cursor-line
-                                                       :cursor-x         cursor-pos
-                                                       :prev-cursor-line prev-cursor-line
-                                                       :prev-cursor-x    prev-cursor-x})
-          parinfer-form   (apply-parinfer parinfer-result)]
-      {:db                 (assoc db :current-form current-form
-                                     :parinfer-form (or parinfer-form current-form)
-                                     :parinfer-result parinfer-result)
-       ::send-current-form {:current-form current-form :user-name (:user-name db)}})))
+  (fn [{:keys [db]} [_ current-form]]
+    {:db                 (assoc db :current-form current-form)
+     ::send-current-form {:current-form current-form :user-name (:user-name db)}}))
+
+(reg-event-fx
+  ::from-history
+  (fn [{:keys [db]} [_ history-form]]
+    (let [code-mirror (:editor-code-mirror db)]
+      (.setValue code-mirror history-form))))
+
+(defn format-response
+  [response]
+  (if (= 1 (count response))
+    (let [resp (first response)]
+      (str (:form resp) "\n" "=> " (:val resp) "\n"))
+    (str "\n Collection \n")))
+
+(defn format-results
+  [results]
+  (map (comp format-response :prepl-response) results))
 
 (reg-event-db
   ::eval-result
   (fn [db [_ eval-result]]
-    (let [eval-results (or (:eval-results db) [])]
-      (assoc db :eval-results (conj eval-results eval-result)))))
+    (let [code-mirror  (:eval-code-mirror db)
+          eval-results (cons eval-result (:eval-results db))
+          str-results  (apply str (reverse (format-results eval-results)))]
+      (.setValue code-mirror str-results)
+      (assoc db :eval-results eval-results))))
+
+(reg-event-db
+  ::eval-code-mirror
+  (fn [db [_ code-mirror]]
+    (assoc db :eval-code-mirror code-mirror)))
+
+(reg-event-db
+  ::editor-code-mirror
+  (fn [db [_ code-mirror]]
+    (assoc db :editor-code-mirror code-mirror)))
+
+(reg-event-db
+  ::other-editors-code-mirrors
+  (fn [db [_ code-mirror editor]]
+    (let [code-mirrors (:editor-code-mirrors db)]
+      (assoc db :editor-code-mirrors (set (conj code-mirrors {:editor      editor
+                                                              :code-mirror code-mirror}))))))
 
 (reg-fx
   ::send-repl-eval
