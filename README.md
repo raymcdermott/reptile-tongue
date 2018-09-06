@@ -9,15 +9,16 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the REPtiLE shared 
 - [X] Shared, accessible history
 - [X] Authenticated server access
 - [X] Color syntax for output
-- [X] Basic parinfer integration
+- [X] Parinfer integration
 - [X] Simple exception viewing 
-- [X] Add a library on demand
+- [X] Add a library on demand (Maven & Git SHAs)
+- [ ] Filtered / expandable exception viewing 
+- [X] Color syntax whilst editing
+- [ ] Show matching / balancing parens
+- [ ] Per user name spaces
 - [ ] Incremental feedback on long running REPL evaluations
 - [ ] Cancel long running REPL evaluations
-- [ ] Per user name spaces
-- [ ] Filtered / expandable exception viewing 
-- [ ] Color syntax whilst editing
-- [ ] Show matching / balancing parens
+- [ ] Choice of editor key mappings
 
 ## Configuration
 
