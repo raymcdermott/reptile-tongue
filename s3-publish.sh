@@ -4,6 +4,8 @@
 
 set -ex
 
-lein cljsbuild once
+rm -rf ./resources/public/js
+
+clojure -A:fig:min
 
 aws s3 sync ./resources/public s3://reptile-ui.extemporay.io/ --delete

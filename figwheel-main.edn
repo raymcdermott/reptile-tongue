@@ -1,3 +1,4 @@
 {:css-dirs ["resources/public/vendor/css"]
+ :open-url false
  ;; rest of the config
  }

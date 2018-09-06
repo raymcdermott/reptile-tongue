@@ -17,5 +17,5 @@
                    :extra-paths ["resources" "target"]
                    :main-opts   ["-m" "figwheel.main"]}
            :build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}}}
+           :min   {:main-opts ["-m" "figwheel.main" "-bo" "dev"]}}}
 
