@@ -9,41 +9,14 @@
             [cljs.reader :as edn]
             [reagent.core :as reagent]
             [cljsjs.parinfer-codemirror]
-            [cljsjs.parinfer]
-            [clojure.string :as str]
-            [cljs.reader :as rdr]
-            [cljs.tools.reader.reader-types :as treader-types]))
+            [cljsjs.parinfer]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
                     :padding     "5px 5px 5px 5px"})
 
-(def readonly-panel-style (merge (flex-child-style "1")
-                                 default-style
-                                 {:background-color "rgba(171, 171, 129, 0.1)"
-                                  :color            "gray"
-                                  :resize           "none"}))
-
-(def other-editor-style (merge (flex-child-style "1")
-                               default-style
-                               {:font-size        "10px"
-                                :color            "gray"
-                                :font-weight      "lighter"
-                                :padding          "3px 3px 3px 3px"
-                                :background-color "rgba(171, 171, 129, 0.1)"}))
-
-(def input-style (merge (flex-child-style "1")
-                        default-style
-                        {:font-weight "bolder"
-                         :resize      "none"}))
-
 (def eval-panel-style (merge (flex-child-style "1")
                              default-style))
-
-(def eval-content-style (merge (flex-child-style "1")
-                               {:resize    "none"
-                                :flex-flow "column-reverse nowrap"
-                                :padding   "3px 3px 3px 3px"}))
 
 (def history-style {:padding "5px 5px 0px 10px"})
 
@@ -53,6 +26,12 @@
                           :color       "lightgrey"}))
 
 ;; CodeMirror support
+
+(defn code-mirror-text-area
+  [id]
+  (fn [] [:textarea {:id            id
+                     :auto-complete false
+                     :default-value ""}]))
 
 (defn code-mirror-parinfer
   [dom-node config]
@@ -64,13 +43,15 @@
     (js/parinferCodeMirror.init code-mirror)
     code-mirror))
 
+;; Components
+
 (defn other-editor-did-mount
   [editor]
   (fn [this]
-    (let [code-mirror (code-mirror-parinfer
-                        (reagent/dom-node this)
-                        {:options {:lineNumbers true
-                                   :readOnly    true}})]
+    (let [node        (reagent/dom-node this)
+          options     {:options {:lineNumbers true
+                                 :readOnly    true}}
+          code-mirror (code-mirror-parinfer node options)]
       (re-frame/dispatch [::events/other-editors-code-mirrors code-mirror editor]))))
 
 (defn other-editor-component
@@ -80,36 +61,37 @@
      (other-editor-did-mount editor)
 
      :reagent-render
-     (fn [] [:textarea {:id            editor
-                        :auto-complete false
-                        :default-value ""}])}))
+     (code-mirror-text-area editor)}))
 
 
-(defn read-input-panel
-  [user-name]
-  (println "read-input-panel user-name" user-name)
+(defn other-editor-panel
+  [editor]
   [v-box :size "auto" :style eval-panel-style
-   :children [[label :label user-name]
-              [other-editor-component user-name]]])
+   :children [[label :label editor]
+              [other-editor-component editor]]])
 
 (defn format-trace
   [via trace]
   (let [show-trace? (reagent/atom false)]
-    (fn
-      []
-      [v-box :children
-       [[md-icon-button :md-icon-name "zmdi-zoom-in" :tooltip (first via) :on-click #(reset! show-trace? true)]
-        (when @show-trace?
-          [modal-panel :backdrop-on-click #(reset! show-trace? false)
-           :child
-           [scroller :height "85vh"
-            :child
-            [v-box :size "auto"
-             :children
-             [[label :label (:type (first via))]
-              (map (fn [element] [label :label (str element)]) trace)
-              [gap :size "20px"]
-              [button :label "Done (or click the backdrop)" :on-click #(reset! show-trace? false)]]]]])]])))
+    (fn []
+      [v-box
+       :children [[md-icon-button
+                   :md-icon-name "zmdi-zoom-in"
+                   :tooltip (first via)
+                   :on-click #(reset! show-trace? true)]
+                  (when @show-trace?
+                    [modal-panel :backdrop-on-click #(reset! show-trace? false)
+                     :child
+                     [scroller :height "85vh"
+                      :child
+                      [v-box :size "auto"
+                       :children [[label :label (:type (first via))]
+                                  (map (fn [element]
+                                         [label :label (str element)])
+                                       trace)
+                                  [gap :size "20px"]
+                                  [button :label "Done (or click the backdrop)"
+                                   :on-click #(reset! show-trace? false)]]]]])]])))
 
 (defn format-exception
   [val form]
@@ -118,46 +100,24 @@
     [v-box :size "auto"
      :children [[label :label form]
                 [h-box :size "auto"
-                 :children [[label :style {:color "red"} :label (str "=> " (or cause (:type (first via)) "??"))]
+                 :children [[label
+                             :style {:color "red"}
+                             :label (str "=> " (or cause (:type (first via)) "??"))]
                             [gap :size "20px"]
                             [format-trace via trace]]]
                 [gap :size "20px"]]]))
 
-
-(defn format-result
-  [result]
-  (let [eval-result  (:prepl-response result)
-        input-form   (:form (last eval-result))
-        source       (:source result)
-        returned-val (:val (last eval-result))
-        val          (try (edn/read-string returned-val)
-                          (catch js/Error e e))]
-    ;(when-let [spec-fail-data (:data (last eval-result))]
-    ;  (println "spec-fail:" spec-fail-data))
-    (if (and (map? val) (= #{:cause :via :trace} (set (keys val))))
-      [format-exception returned-val input-form]
-      [v-box :size "auto" :children
-       [[h-box :align :center :gap "20px"
-         :children [[label :label input-form]
-                    (when (= source :system)
-                      [label :style {:color :lightgray :font-weight :lighter}
-                       :label (str "(invoked by " (name source) ")")])]]
-        (map (fn [printable]
-               [label :label (:val printable)])
-             (drop-last eval-result))
-        [label :label (str "=> " returned-val)]             ; Properly format the output
-        [gap :size "20px"]]])))
 
 (defn scrollToBottom
   [code-mirror]
   (let [line-count (.lastLine code-mirror)]
     (.scrollIntoView code-mirror #js {:line line-count})))
 
-(defn eval-did-mount []
+(defn eval-did-mount
+  []
   (fn [this]
     (let [node        (reagent/dom-node this)
-          options     {:options {:lineNumbers  true
-                                 :lineWrapping true
+          options     {:options {:lineWrapping true
                                  :readOnly     true}}
           code-mirror (code-mirror-parinfer node options)]
       (.on code-mirror "change" #(scrollToBottom code-mirror))
@@ -170,30 +130,12 @@
      (eval-did-mount)
 
      :reagent-render
-     (fn []
-       [:textarea {:id            panel-name
-                   :auto-complete false
-                   :default-value ""}])}))
+     (code-mirror-text-area (str "eval-" panel-name))}))
 
 (defn eval-panel
-  "We need to use a lower level reagent function to have the content scroll from the bottom"
-  []
-  (reagent/create-class
-    {:component-did-update
-     (fn [this]
-       (let [node (reagent/dom-node this)]
-         (set! (.-scrollTop node) (.-scrollHeight node))))
-
-     :reagent-render
-     (fn []
-       (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
-         [scroller :style eval-panel-style
-          :child
-          [box :style eval-content-style :size "auto"
-           :child
-           [:div (when eval-results
-                   [v-box :size "auto" :children
-                    (map format-result eval-results)])]]]))}))
+  [panel-name]
+  [v-box :size "auto" :style eval-panel-style
+   :children [[eval-component panel-name]]])
 
 (defn format-history-item
   [historical-form]
@@ -204,12 +146,12 @@
 
 (defn visual-history
   []
-  (fn
-    []
+  (fn []
     (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
       (when eval-results
-        [h-box :size "auto" :align :center :style history-style :children
-         (reverse (map format-history-item (distinct (map :form eval-results))))]))))
+        [h-box :size "auto" :align :center :style history-style
+         :children (map format-history-item
+                        (distinct (map :form eval-results)))]))))
 
 
 (defn lib-type
@@ -278,17 +220,14 @@
                           [button :label "Add" :on-click process-ok]]]]]]))
 
 
-(defn code-mirror-editor-changes
-  [change]
-  (re-frame/dispatch [::events/current-form change]))
-
-(defn editor-did-mount []
+(defn editor-did-mount
+  []
   (fn [this]
-    (let [code-mirror (code-mirror-parinfer
-                        (reagent/dom-node this)
-                        {:options {:autofocus   true
-                                   :lineNumbers true}})]
-      (.on code-mirror "change" #(code-mirror-editor-changes (.getValue %)))
+    (let [node        (reagent/dom-node this)
+          options     {:options {:autofocus   true
+                                 :lineNumbers true}}
+          code-mirror (code-mirror-parinfer node options)]
+      (.on code-mirror "change" #(re-frame/dispatch [::events/current-form (.getValue %)]))
       (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
 
 (defn edit-component
@@ -298,9 +237,7 @@
      (editor-did-mount)
 
      :reagent-render
-     (fn [] [:textarea {:id            panel-name
-                        :auto-complete false
-                        :default-value ""}])}))
+     (code-mirror-text-area panel-name)}))
 
 ; TODO: Refactor out the add-lib modal
 
@@ -316,8 +253,7 @@
         add-lib-event (fn []
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))]
-    (fn
-      []
+    (fn []
       (let [current-form @(re-frame/subscribe [::subs/current-form])]
         [v-box :size "auto"
          :children
@@ -331,7 +267,10 @@
              :label "Eval (or Alt-Enter)"
              :on-click #(re-frame/dispatch [::events/eval current-form])]
             [gap :size "30px"]
-            [md-circle-icon-button :md-icon-name "zmdi-plus" :tooltip "Add a library" :size :smaller
+            [md-circle-icon-button
+             :md-icon-name "zmdi-plus"
+             :tooltip "Add a library"
+             :size :smaller
              :on-click #(reset! show-add-lib? true)]
             (when @show-add-lib?
               [modal-panel
@@ -384,23 +323,11 @@
                                   [gap :size "30px"]
                                   [button :label "Access" :on-click process-ok]]]]]])
 
-(defn login
-  []
-  (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
-        form-data  (reagent/atom {:user   "ray"
-                                  :secret "warm-blooded-lizards-rock"})
-        process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
-    (fn [] (when-not logged-in
-             [modal-panel
-              :backdrop-color "lightblue"
-              :backdrop-opacity 0.1
-              :child [login-form form-data process-ok]]))))
-
-(defn read-panels
+(defn other-editor-panels
   [other-editors]
   (when other-editors
     [v-box :size "auto"
-     :children (vec (map #(read-input-panel %) other-editors))]))
+     :children (vec (map #(other-editor-panel %) other-editors))]))
 
 (defn main-panels
   [user-name other-editors]
@@ -413,11 +340,24 @@
      :panel-1 (if (empty? other-editors)
                 [edit-panel user-name]
                 [v-split :initial-split "60%"
-                 :panel-1 [read-panels other-editors]
+                 :panel-1 [other-editor-panels other-editors]
                  :panel-2 [edit-panel user-name]])
-     :panel-2 [eval-component]]
+     :panel-2 [eval-panel user-name]]
     [gap :size "10px"]
     [status-bar user-name]]])
+
+(defn login
+  []
+  (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
+        form-data  (reagent/atom {:user   "ray"
+                                  :secret "warm-blooded-lizards-rock"})
+        process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
+    (fn []
+      (when-not logged-in
+        [modal-panel
+         :backdrop-color "lightblue"
+         :backdrop-opacity 0.1
+         :child [login-form form-data process-ok]]))))
 
 (defn main-panel
   []

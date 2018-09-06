@@ -5,7 +5,6 @@
     [reptile.tongue.config :as config]
     [reptile.tongue.db :as db]
     [clojure.string :as str]
-    [cljs.core.async :refer (<! >! put! chan go go-loop)]
     [taoensso.encore :refer (have have?)]
     [taoensso.timbre :refer (tracef debugf infof warnf errorf)]
     [taoensso.sente :as sente :refer (cb-success?)]
@@ -140,32 +139,39 @@
     {:db                 (assoc db :current-form current-form)
      ::send-current-form {:current-form current-form :user-name (:user-name db)}}))
 
+(reg-fx
+  ::set-code-mirror-value
+  (fn [{:keys [new-value code-mirror]}]
+    (.setValue code-mirror new-value)))
+
 (reg-event-fx
   ::from-history
   (fn [{:keys [db]} [_ history-form]]
     (let [code-mirror (:editor-code-mirror db)]
-      (.setValue code-mirror history-form))))
+      {:db                     (assoc db :from-history history-form)
+       ::set-code-mirror-value {:new-value history-form :code-mirror code-mirror}})))
 
 (defn format-response
   [response]
   (if (= 1 (count response))
     (let [resp (first response)]
       (str (:form resp) "\n" "=> " (:val resp) "\n"))
-    (str "\n Collection \n")))
+    (str "\n response **Collections** are on the TODO list \n"))) ; TODO ... implement
 
 (defn format-results
   [results]
   (map (comp format-response :prepl-response) results))
 
-(reg-event-db
+(reg-event-fx
   ::eval-result
-  (fn [db [_ eval-result]]
+  (fn [{:keys [db]} [_ eval-result]]
     (let [code-mirror  (:eval-code-mirror db)
           eval-results (cons eval-result (:eval-results db))
           str-results  (apply str (reverse (format-results eval-results)))]
-      (.setValue code-mirror str-results)
-      (assoc db :eval-results eval-results))))
+      {:db                     (assoc db :eval-results eval-results)
+       ::set-code-mirror-value {:new-value str-results :code-mirror code-mirror}})))
 
+;; Compress code needed for setting of code mirror instances
 (reg-event-db
   ::eval-code-mirror
   (fn [db [_ code-mirror]]

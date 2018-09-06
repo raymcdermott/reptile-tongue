@@ -53,28 +53,6 @@
   (fn [db]
     (:current-form db)))
 
-;; DELETE
-(re-frame/reg-sub
-  ::edit-keystrokes
-  (fn [db]
-    (:current-form-edits db)))
-
-;; DELETE
-(re-frame/reg-sub
-  ::parinfer-form
-  ;; integrate parinfer here for the editor?
-  (fn [db]
-    (:parinfer-form db)))
-
-;; DELETE
-(re-frame/reg-sub
-  ::parinfer-cursor
-  (fn [db]
-    (let [{:keys [cursor-x cursor-line text]} (:parinfer-result db)]
-      {:cursor-x    cursor-x
-       :cursor-line cursor-line
-       :text        text})))
-
 (re-frame/reg-sub
   ::logged-in
   (fn [db]
