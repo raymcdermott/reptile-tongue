@@ -133,6 +133,8 @@
   (fn [db [_ status]]
     (assoc db :status status)))
 
+;; TODO - keep a copy of the transmitted forms as they have the formatting given by the user
+;; so this should be used in the response
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form]]
