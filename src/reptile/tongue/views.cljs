@@ -14,8 +14,6 @@
             [cljsjs.parinfer-codemirror]
             [cljsjs.parinfer]))
 
-; matchbrackets.js
-
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
                     :padding     "5px 5px 5px 5px"})
