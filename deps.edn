@@ -13,9 +13,10 @@
                                  re-frame                        {:mvn/version "0.10.5"}
                                  re-com                          {:mvn/version "2.1.0"}
 
+                                 cljsjs/codemirror               {:mvn/version "5.31.0-0"}
                                  cljsjs/parinfer-codemirror      {:mvn/version "1.4.1-2"}}
                    :extra-paths ["resources" "target"]
                    :main-opts   ["-m" "figwheel.main"]}
            :build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min   {:main-opts ["-m" "figwheel.main" "-bo" "dev"]}}}
+           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}}}
 

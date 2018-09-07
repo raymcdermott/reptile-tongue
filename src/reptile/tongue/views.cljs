@@ -8,8 +8,13 @@
             [reptile.tongue.subs :as subs]
             [cljs.reader :as edn]
             [reagent.core :as reagent]
+            [cljsjs.codemirror]
+            [cljsjs.codemirror.mode.clojure]
+            [cljsjs.codemirror.addon.edit.matchbrackets]
             [cljsjs.parinfer-codemirror]
             [cljsjs.parinfer]))
+
+; matchbrackets.js
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
@@ -224,8 +229,9 @@
   []
   (fn [this]
     (let [node        (reagent/dom-node this)
-          options     {:options {:autofocus   true
-                                 :lineNumbers true}}
+          options     {:options {:autofocus     true
+                                 :matchBrackets true
+                                 :lineNumbers   true}}
           code-mirror (code-mirror-parinfer node options)]
       (.on code-mirror "change" #(re-frame/dispatch [::events/current-form (.getValue %)]))
       (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
