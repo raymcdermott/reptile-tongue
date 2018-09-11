@@ -5,9 +5,9 @@
     [reptile.tongue.config :as config]
     [reptile.tongue.db :as db]
     [clojure.string :as str]
-    [taoensso.encore :refer (have have?)]
-    [taoensso.timbre :refer (tracef debugf infof warnf errorf)]
-    [taoensso.sente :as sente :refer (cb-success?)]
+    [taoensso.encore :refer [have have?]]
+    [taoensso.timbre :refer [tracef debugf infof warnf errorf]]
+    [taoensso.sente :as sente :refer [cb-success?]]
     [taoensso.sente.packers.transit :as sente-transit]
     [cljs.reader :as rdr]
     [cljs.tools.reader.reader-types :as treader-types]))
@@ -118,6 +118,8 @@
 (reg-fx
   ::send-current-form
   (fn [{:keys [current-form user-name timeout]}]
+
+
     (when-not (str/blank? current-form)
       (chsk-send!
         [:reptile/keystrokes {:form current-form :user-name user-name}]
@@ -154,15 +156,22 @@
        ::set-code-mirror-value {:new-value history-form :code-mirror code-mirror}})))
 
 (defn format-response
-  [response]
-  (if (= 1 (count response))
-    (let [resp (first response)]
-      (str (:form resp) "\n" "=> " (:val resp) "\n"))
-    (str "\n response **Collections** are on the TODO list \n"))) ; TODO ... implement
+  [{:keys [form prepl-response] :as response}]
+  (letfn [(format-val [val] (if (nil? val) "nil" val))]
+    (cond
+      (= 1 (count prepl-response))
+      (let [eval-result (first prepl-response)]
+        (str form "\n => " (format-val (:val eval-result)) "\n\n"))
+
+      :else
+      (let [output      (apply str (doall (map :val
+                                               (filter #(not= :ret (:tag %)) prepl-response))))
+            eval-result (last prepl-response)]
+        (str form "\n" output "=> " (format-val (:val eval-result)) "\n\n")))))
 
 (defn format-results
   [results]
-  (map (comp format-response :prepl-response) results))
+  (doall (map format-response results)))
 
 (reg-event-fx
   ::eval-result
@@ -171,7 +180,8 @@
           eval-results (cons eval-result (:eval-results db))
           str-results  (apply str (reverse (format-results eval-results)))]
       {:db                     (assoc db :eval-results eval-results)
-       ::set-code-mirror-value {:new-value str-results :code-mirror code-mirror}})))
+       ::set-code-mirror-value {:new-value   str-results
+                                :code-mirror code-mirror}})))
 
 ;; Compress code needed for setting of code mirror instances
 (reg-event-db
@@ -193,14 +203,19 @@
 
 (reg-fx
   ::send-repl-eval
-  (fn [[source forms]]
-    (doall
-      (map (fn
-             [form]
-             (when-not (str/blank? form)
-               (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
-                           (or (:timeout form) 3000))))
-           forms))))
+  (fn [[source form]]
+    (chsk-send! [:reptile/repl {:form (str form) :source source :forms form}]
+                (or (:timeout form) 3000))
+
+    ;(comment (doall
+    ;           (map (fn
+    ;                  [form]
+    ;                  (when-not (str/blank? form)
+    ;                    (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
+    ;                                (or (:timeout form) 3000))))
+    ;                forms)))
+
+    ))
 
 (defn read-forms
   "Read the string in the REPL buffer to obtain N forms (rather than just the first!)"
@@ -210,11 +225,12 @@
     (take-while #(not= sentinel %)
                 (repeatedly #(rdr/read {:eof sentinel} pbr)))))
 
+; TODO - add back in support for N forms
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
     {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
-     ::send-repl-eval [:user (read-forms form-to-eval)]}))
+     ::send-repl-eval [:user form-to-eval]}))
 
 (reg-event-db
   ::login-result

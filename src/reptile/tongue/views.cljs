@@ -244,6 +244,7 @@
      (code-mirror-text-area panel-name)}))
 
 ; TODO: Refactor out the add-lib modal
+; TODO: Add back keyboard support for Alt-Enter
 
 (defn edit-panel
   [panel-name]
