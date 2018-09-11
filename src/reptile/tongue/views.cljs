@@ -66,7 +66,6 @@
      :reagent-render
      (code-mirror-text-area editor)}))
 
-
 (defn other-editor-panel
   [editor]
   [v-box :size "auto" :style eval-panel-style
@@ -109,7 +108,6 @@
                             [gap :size "20px"]
                             [format-trace via trace]]]
                 [gap :size "20px"]]]))
-
 
 (defn scrollToBottom
   [code-mirror]
@@ -155,7 +153,6 @@
         [h-box :size "auto" :align :center :style history-style
          :children (map format-history-item
                         (distinct (map :form eval-results)))]))))
-
 
 (defn lib-type
   [lib-data]
@@ -222,15 +219,17 @@
                           [gap :size "30px"]
                           [button :label "Add" :on-click process-ok]]]]]]))
 
-
 (defn editor-did-mount
   []
   (fn [this]
-    (let [node        (reagent/dom-node this)
-          options     {:options {:autofocus     true
-                                 :matchBrackets true
-                                 :lineNumbers   true}}
-          code-mirror (code-mirror-parinfer node options)]
+    (let [node            (reagent/dom-node this)
+          extra-edit-keys {:Alt-Enter #(re-frame/dispatch
+                                         [::events/eval (.getValue %)])}
+          options         {:options {:autofocus     true
+                                     :matchBrackets true
+                                     :lineNumbers   true
+                                     :extraKeys     extra-edit-keys}}
+          code-mirror     (code-mirror-parinfer node options)]
       (.on code-mirror "change" #(re-frame/dispatch [::events/current-form (.getValue %)]))
       (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
 
@@ -262,7 +261,6 @@
       (let [current-form @(re-frame/subscribe [::subs/current-form])]
         [v-box :size "auto"
          :children
-         ;; TODO make edit-panel-style
          [[box :size "auto" :style eval-panel-style :child
            [edit-component panel-name]]
           [gap :size "5px"]

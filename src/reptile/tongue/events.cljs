@@ -135,8 +135,6 @@
   (fn [db [_ status]]
     (assoc db :status status)))
 
-;; TODO - keep a copy of the transmitted forms as they have the formatting given by the user
-;; so this should be used in the response
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form]]
@@ -203,19 +201,14 @@
 
 (reg-fx
   ::send-repl-eval
-  (fn [[source form]]
-    (chsk-send! [:reptile/repl {:form (str form) :source source :forms form}]
-                (or (:timeout form) 3000))
-
-    ;(comment (doall
-    ;           (map (fn
-    ;                  [form]
-    ;                  (when-not (str/blank? form)
-    ;                    (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
-    ;                                (or (:timeout form) 3000))))
-    ;                forms)))
-
-    ))
+  (fn [[source forms]]
+    (doall
+         (map (fn
+                [form]
+                (when-not (str/blank? form)
+                  (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
+                              (or (:timeout form) 3000))))
+              forms))))
 
 (defn read-forms
   "Read the string in the REPL buffer to obtain N forms (rather than just the first!)"
@@ -225,12 +218,11 @@
     (take-while #(not= sentinel %)
                 (repeatedly #(rdr/read {:eof sentinel} pbr)))))
 
-; TODO - add back in support for N forms
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
     {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
-     ::send-repl-eval [:user form-to-eval]}))
+     ::send-repl-eval [:user (read-forms form-to-eval)]}))
 
 (reg-event-db
   ::login-result
