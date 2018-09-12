@@ -78,7 +78,6 @@
 
 ;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
 
-
 ;;;; Sente event router (our `event-msg-handler` loop)
 
 (defonce router_ (atom nil))
@@ -118,28 +117,22 @@
 (reg-fx
   ::send-current-form
   (fn [{:keys [current-form user-name timeout]}]
-
-
     (when-not (str/blank? current-form)
-      (chsk-send!
-        [:reptile/keystrokes {:form current-form :user-name user-name}]
-        (or timeout 3000)))))
+      (chsk-send! [:reptile/keystrokes {:form      current-form
+                                        :user-name user-name}]
+                  (or timeout 3000)))))
 
 (reg-event-db
   ::network-status
   (fn [db [_ status]]
     (assoc db :network-status status)))
 
-(reg-event-db
-  ::update-status
-  (fn [db [_ status]]
-    (assoc db :status status)))
-
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form]]
     {:db                 (assoc db :current-form current-form)
-     ::send-current-form {:current-form current-form :user-name (:user-name db)}}))
+     ::send-current-form {:current-form current-form
+                          :user-name    (:user-name db)}}))
 
 (reg-fx
   ::set-code-mirror-value
@@ -151,7 +144,8 @@
   (fn [{:keys [db]} [_ history-form]]
     (let [code-mirror (:editor-code-mirror db)]
       {:db                     (assoc db :from-history history-form)
-       ::set-code-mirror-value {:new-value history-form :code-mirror code-mirror}})))
+       ::set-code-mirror-value {:new-value   history-form
+                                :code-mirror code-mirror}})))
 
 (defn format-response
   [{:keys [form prepl-response]}]
@@ -185,6 +179,7 @@
                                 :code-mirror code-mirror}})))
 
 ;; Compress code needed for setting of code mirror instances
+
 (reg-event-db
   ::eval-code-mirror
   (fn [db [_ code-mirror]]
@@ -206,10 +201,11 @@
   ::send-repl-eval
   (fn [[source forms]]
     (doall
-      (map (fn
-             [form]
+      (map (fn [form]
              (when-not (str/blank? form)
-               (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
+               (chsk-send! [:reptile/repl {:form   (str form)
+                                           :source source
+                                           :forms  forms}]
                            (or (:timeout form) 3000))))
            forms))))
 
@@ -270,8 +266,8 @@
 (reg-event-fx
   ::login
   (fn [cofx [_ login-options]]
-    {:db            (assoc (:db cofx) :proposed-user (:user login-options) :user-name nil)
-     ; {:user   "YOUR-NAME" :server-url "https://some-ec2-server.aws.com" :secret "6738f275-513b-4ab9-8064-93957c4b3f35"}
+    {:db            (assoc (:db cofx) :proposed-user (:user login-options)
+                                      :user-name nil)
      ::server-login {:login-options login-options}}))
 
 (reg-event-fx

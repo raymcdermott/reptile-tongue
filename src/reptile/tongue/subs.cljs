@@ -28,11 +28,6 @@
     (:eval-results db)))
 
 (re-frame/reg-sub
-  ::status
-  (fn [db]
-    (:status db)))
-
-(re-frame/reg-sub
   ::network-status
   (fn [db]
     (:network-status db)))

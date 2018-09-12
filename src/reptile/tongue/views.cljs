@@ -72,58 +72,19 @@
    :children [[label :label editor]
               [other-editor-component editor]]])
 
-; TODO call from event code
-(defn format-trace
-  [via trace]
-  (let [show-trace? (reagent/atom false)]
-    (fn []
-      [v-box
-       :children [[md-icon-button
-                   :md-icon-name "zmdi-zoom-in"
-                   :tooltip (first via)
-                   :on-click #(reset! show-trace? true)]
-                  (when @show-trace?
-                    [modal-panel :backdrop-on-click #(reset! show-trace? false)
-                     :child
-                     [scroller :height "85vh"
-                      :child
-                      [v-box :size "auto"
-                       :children [[label :label (:type (first via))]
-                                  (map (fn [element]
-                                         [label :label (str element)])
-                                       trace)
-                                  [gap :size "20px"]
-                                  [button :label "Done (or click the backdrop)"
-                                   :on-click #(reset! show-trace? false)]]]]])]])))
 
-(defn format-exception
-  [val form]
-  (let [{:keys [cause via trace]} (edn/read-string val)]
-    (println "cause" cause "via" (:type (first via)))
-    [v-box :size "auto"
-     :children [[label :label form]
-                [h-box :size "auto"
-                 :children [[label
-                             :style {:color "red"}
-                             :label (str "=> " (or cause (:type (first via)) "??"))]
-                            [gap :size "20px"]
-                            [format-trace via trace]]]
-                [gap :size "20px"]]]))
-
-(defn scrollToBottom
-  [code-mirror]
-  (let [line-count (.lastLine code-mirror)]
-    (.scrollIntoView code-mirror #js {:line line-count})))
 
 (defn eval-did-mount
   []
   (fn [this]
-    (let [node        (reagent/dom-node this)
-          options     {:options {:lineWrapping true
-                                 :readOnly     true}}
-          code-mirror (code-mirror-parinfer node options)]
-      (.on code-mirror "change" #(scrollToBottom code-mirror))
-      (re-frame/dispatch [::events/eval-code-mirror code-mirror]))))
+    (letfn [(scrollToBottom [cm]
+              (.scrollIntoView cm #js {:line (.lastLine cm)}))]
+      (let [node        (reagent/dom-node this)
+            options     {:options {:lineWrapping true
+                                   :readOnly     true}}
+            code-mirror (code-mirror-parinfer node options)]
+        (.on code-mirror "change" #(scrollToBottom code-mirror))
+        (re-frame/dispatch [::events/eval-code-mirror code-mirror])))))
 
 (defn eval-component
   [panel-name]
@@ -285,23 +246,17 @@
 
 (defn status-bar
   [user-name]
-  (let [edit-status    @(re-frame/subscribe [::subs/status])
-        edit-style     {:color (if edit-status "red" "rgba(127, 191, 63, 0.32)")}
-        network-status @(re-frame/subscribe [::subs/network-status])
+  (let [network-status @(re-frame/subscribe [::subs/network-status])
         network-style  {:color (if network-status "rgba(127, 191, 63, 0.32)" "red")}]
     [v-box :children
      [[line]
       [h-box :size "20px" :style status-style :gap "20px" :align :center :children
-       [[label :label (str "User: " user-name)]
+       [[label :label (str "Editor: " user-name)]
         [line]
         [label :style network-style :label "Connect Status:"]
         (if network-status
           [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
-          [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])
-        [line]
-        [label :style edit-style :label "Edit Status:"]
-        [label :style edit-style :label (or edit-status "OK")]]]
-      [line]]]))
+          [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])]]]]))
 
 
 (defn login-form
