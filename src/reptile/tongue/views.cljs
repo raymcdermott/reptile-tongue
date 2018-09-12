@@ -72,6 +72,7 @@
    :children [[label :label editor]
               [other-editor-component editor]]])
 
+; TODO call from event code
 (defn format-trace
   [via trace]
   (let [show-trace? (reagent/atom false)]
@@ -243,8 +244,6 @@
      (code-mirror-text-area panel-name)}))
 
 ; TODO: Refactor out the add-lib modal
-; TODO: Add back keyboard support for Alt-Enter
-
 (defn edit-panel
   [panel-name]
   (let [show-add-lib? (reagent/atom false)

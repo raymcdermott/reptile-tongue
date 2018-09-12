@@ -154,16 +154,19 @@
        ::set-code-mirror-value {:new-value history-form :code-mirror code-mirror}})))
 
 (defn format-response
-  [{:keys [form prepl-response] :as response}]
-  (letfn [(format-val [val] (if (nil? val) "nil" val))]
+  [{:keys [form prepl-response]}]
+  (letfn [(format-val [v] (if (nil? v) "nil" v))]
     (cond
       (= 1 (count prepl-response))
-      (let [eval-result (first prepl-response)]
-        (str form "\n => " (format-val (:val eval-result)) "\n\n"))
+      (let [eval-result (first prepl-response)
+            result-val  (:val eval-result)
+            exception?  (:cause result-val)]
+        (if exception?
+          (str form "\n => " (:cause result-val) "\n\n")
+          (str form "\n => " (format-val result-val) "\n\n")))
 
       :else
-      (let [output      (apply str (doall (map :val
-                                               (filter #(not= :ret (:tag %)) prepl-response))))
+      (let [output      (apply str (doall (map :val (filter #(not= :ret (:tag %)) prepl-response))))
             eval-result (last prepl-response)]
         (str form "\n" output "=> " (format-val (:val eval-result)) "\n\n")))))
 
@@ -203,12 +206,12 @@
   ::send-repl-eval
   (fn [[source forms]]
     (doall
-         (map (fn
-                [form]
-                (when-not (str/blank? form)
-                  (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
-                              (or (:timeout form) 3000))))
-              forms))))
+      (map (fn
+             [form]
+             (when-not (str/blank? form)
+               (chsk-send! [:reptile/repl {:form (str form) :source source :forms forms}]
+                           (or (:timeout form) 3000))))
+           forms))))
 
 (defn read-forms
   "Read the string in the REPL buffer to obtain N forms (rather than just the first!)"
