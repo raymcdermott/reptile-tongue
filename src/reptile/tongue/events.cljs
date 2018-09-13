@@ -147,6 +147,24 @@
        ::set-code-mirror-value {:new-value   history-form
                                 :code-mirror code-mirror}})))
 
+(defn read-ex
+  "Read exceptions, patching spec SNAFUs"
+  [exc]
+  (try (some-> exc
+               (clojure.string/replace #"^#error " "")
+               (clojure.string/replace #":spec #object.+ :value" ":value")
+               (rdr/read-string))
+       (catch :default e (do (println "read-ex error:" e "input form" exc)
+                             (str "read-ex error:" e)))))
+
+(defn pred-fails
+  [spec-error]
+  (some->> (get-in spec-error [:data :clojure.spec.alpha/problems])
+           (map :pred)
+           (distinct)
+           (interpose "\n")
+           (apply str)))
+
 (defn format-response
   [{:keys [form prepl-response]}]
   (letfn [(format-val [v] (if (nil? v) "nil" v))]
@@ -154,11 +172,14 @@
       (= 1 (count prepl-response))
       (let [eval-result (first prepl-response)
             result-val  (:val eval-result)
-            exception?  (:cause result-val)]
+            spec-err    (when-let [{:keys [ex]} prepl-response] (read-ex ex))
+            exception?  (or (:cause spec-err) (:cause result-val))]
         (if exception?
-          (str form "\n => " (:cause result-val) "\n\n")
+          (str form "\n => " exception? "\n"
+               (when-let [fails (pred-fails spec-err)]
+                 (str "Failure on: " fails "\n"))
+               "\n")
           (str form "\n => " (format-val result-val) "\n\n")))
-
       :else
       (let [output      (apply str (doall (map :val (filter #(not= :ret (:tag %)) prepl-response))))
             eval-result (last prepl-response)]

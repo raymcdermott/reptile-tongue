@@ -38,7 +38,7 @@
 
 (defn code-mirror-parinfer
   [dom-node config]
-  (let [editor-options (clj->js (merge {:mode "clojure"} (:options config)))
+  (let [editor-options (clj->js (merge {:mode :clojure} (:options config)))
         code-mirror    (js/CodeMirror.fromTextArea dom-node editor-options)
         editor-height  (get-in config [:size :height] "100%")
         editor-width   (get-in config [:size :width] "100%")]
