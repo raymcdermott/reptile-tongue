@@ -52,8 +52,7 @@
   [editor]
   (fn [this]
     (let [node        (reagent/dom-node this)
-          options     {:options {:lineNumbers true
-                                 :readOnly    true}}
+          options     {:options {:readOnly true}}
           code-mirror (code-mirror-parinfer node options)]
       (re-frame/dispatch [::events/other-editors-code-mirrors code-mirror editor]))))
 
@@ -181,6 +180,15 @@
                           [gap :size "30px"]
                           [button :label "Add" :on-click process-ok]]]]]]))
 
+(defn notify-edits
+  [new-value]
+  "Place wrapping quotes around raw strings to save them from getting lost in transit"
+  (let [clean-form   (clojure.string/trim new-value)
+        current-form (if (and (= (first clean-form) \") (= (last clean-form) \"))
+                       (pr-str new-value)
+                       new-value)]
+    (re-frame/dispatch [::events/current-form current-form])))
+
 (defn editor-did-mount
   []
   (fn [this]
@@ -192,7 +200,7 @@
                                      :lineNumbers   true
                                      :extraKeys     extra-edit-keys}}
           code-mirror     (code-mirror-parinfer node options)]
-      (.on code-mirror "change" #(re-frame/dispatch [::events/current-form (.getValue %)]))
+      (.on code-mirror "change" #(notify-edits (.getValue %)))
       (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
 
 (defn edit-component
@@ -296,7 +304,7 @@
    [[h-split :splitter-size "2px" :initial-split "45%"
      :panel-1 (if (empty? other-editors)
                 [edit-panel user-name]
-                [v-split :initial-split "60%"
+                [v-split :initial-split "30%"
                  :panel-1 [other-editor-panels other-editors]
                  :panel-2 [edit-panel user-name]])
      :panel-2 [eval-panel user-name]]
