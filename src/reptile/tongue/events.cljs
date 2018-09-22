@@ -220,27 +220,20 @@
     (let [code-mirrors (:editor-code-mirrors db)]
       (assoc db :editor-code-mirrors (set (conj code-mirrors {:editor      editor
                                                               :code-mirror code-mirror}))))))
-
-; TODO - fix so that the other side parses the string, no vectors needed here (1)
 (reg-fx
   ::send-repl-eval
-  (fn [[source forms]]
-    (doall
-      (map (fn [form]
-             (when-not (str/blank? form)
-               (chsk-send! [:reptile/repl {:form   form
-                                           :source source
-                                           :forms  forms}]
-                           (or (:timeout form) 3000))))
-           forms))))
+  (fn [[source form]]
+    (when-not (str/blank? form)
+      (chsk-send! [:reptile/repl {:form   form
+                                  :source source
+                                  :forms  form}]
+                  (or (:timeout form) 3000)))))
 
-; TODO - fix so that the other side parses the string, no vectors needed here (2)
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
-    (let [forms [form-to-eval]]
-      {:db              (assoc (:db cofx) :form-to-eval forms)
-       ::send-repl-eval [:user forms]})))
+    {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
+     ::send-repl-eval [:user form-to-eval]}))
 
 (reg-event-db
   ::login-result
