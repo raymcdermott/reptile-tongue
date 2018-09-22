@@ -165,26 +165,38 @@
            (interpose "\n")
            (apply str)))
 
+(defn format-nil-vals
+  [val]
+  (if (nil? val) "nil" val))
+
+(defn format-return-vals
+  [response]
+  (some->> response
+           (filter #(= :ret (:tag %)))
+           (map :val)
+           (map format-nil-vals)
+           (interpose "\n=> ")
+           (apply str)))
+
 (defn format-response
   [{:keys [form prepl-response]}]
-  (letfn [(format-val [v] (if (nil? v) "nil" v))]
-    (cond
-      (= 1 (count prepl-response))
-      (let [eval-result (first prepl-response)
-            result-val  (:val eval-result)
-            spec-err    (let [{:keys [ex]} eval-result]
-                          (and ex (read-ex ex)))
-            exception?  (or (:cause spec-err) (:cause result-val))]
-        (if exception?
-          (str form "\n => " exception? "\n"
-               (when-let [fails (pred-fails spec-err)]
-                 (str "Failure on: " fails "\n"))
-               "\n")
-          (str form "\n => " (format-val result-val) "\n\n")))
-      :else
-      (let [output      (apply str (doall (map :val (filter #(not= :ret (:tag %)) prepl-response))))
-            eval-result (last prepl-response)]
-        (str form "\n" output "=> " (format-val (:val eval-result)) "\n\n")))))
+  (cond
+    (= 1 (count prepl-response))
+    (let [eval-result (first prepl-response)
+          result-val  (:val eval-result)
+          spec-err    (let [{:keys [ex]} eval-result]
+                        (and ex (read-ex ex)))
+          exception?  (or (:cause spec-err) (:cause result-val))]
+      (if exception?
+        (str form "\n => " exception? "\n"
+             (when-let [fails (pred-fails spec-err)]
+               (str "Failure on: " fails "\n"))
+             "\n")
+        (str form "\n => " (format-nil-vals result-val) "\n\n")))
+    :else
+    (let [output   (apply str (doall (map :val (filter #(not= :ret (:tag %)) prepl-response))))
+          ret-vals (format-return-vals prepl-response)]
+      (str form "\n" output "=> " ret-vals "\n\n"))))
 
 (defn format-results
   [results]
