@@ -179,34 +179,33 @@
            (apply str)))
 
 (defn format-response
+  [result]
+  (let [{:keys [val tag ex cause]} result
+        spec-err   (and ex (read-ex ex))
+        exception? (or (:cause spec-err) cause)]
+    (cond
+      exception?
+      (str "=> " exception?
+           "\n" (when-let [fails (pred-fails spec-err)] (str "Failure on: " fails "\n"))
+           "\n")
+
+      (= tag :out)
+      val
+
+      (= tag :ret)
+      (str "=> " (format-nil-vals val) "\n"))))
+
+(defn format-responses
   [{:keys [form prepl-response]}]
-  (cond
-    (= 1 (count prepl-response))
-    (let [eval-result (first prepl-response)
-          result-val  (:val eval-result)
-          spec-err    (let [{:keys [ex]} eval-result]
-                        (and ex (read-ex ex)))
-          exception?  (or (:cause spec-err) (:cause result-val))]
-      (if exception?
-        (str form "\n => " exception? "\n"
-             (when-let [fails (pred-fails spec-err)]
-               (str "Failure on: " fails "\n"))
-             "\n")
-        (str form "\n => " (format-nil-vals result-val) "\n\n")))
-    :else
-    (let [output   (apply str (doall (map :val (filter #(not= :ret (:tag %)) prepl-response))))
-          ret-vals (format-return-vals prepl-response)]
-      (str form "\n" output "=> " ret-vals "\n\n"))))
+  (str form "\n" (doall (apply str (map format-response prepl-response)))))
 
 (defn format-results
   [results]
-  (doall (map format-response results)))
+  (doall (map format-responses results)))
 
 (reg-event-fx
   ::eval-result
   (fn [{:keys [db]} [_ eval-result]]
-    (println "::eval-result" eval-result)
-
     (let [code-mirror  (:eval-code-mirror db)
           eval-results (cons eval-result (:eval-results db))
           str-results  (apply str (reverse (format-results eval-results)))]
