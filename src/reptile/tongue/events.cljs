@@ -172,7 +172,8 @@
       (= 1 (count prepl-response))
       (let [eval-result (first prepl-response)
             result-val  (:val eval-result)
-            spec-err    (when-let [{:keys [ex]} prepl-response] (read-ex ex))
+            spec-err    (let [{:keys [ex]} eval-result]
+                          (and ex (read-ex ex)))
             exception?  (or (:cause spec-err) (:cause result-val))]
         (if exception?
           (str form "\n => " exception? "\n"
@@ -192,6 +193,8 @@
 (reg-event-fx
   ::eval-result
   (fn [{:keys [db]} [_ eval-result]]
+    (println "::eval-result" eval-result)
+
     (let [code-mirror  (:eval-code-mirror db)
           eval-results (cons eval-result (:eval-results db))
           str-results  (apply str (reverse (format-results eval-results)))]
@@ -218,31 +221,26 @@
       (assoc db :editor-code-mirrors (set (conj code-mirrors {:editor      editor
                                                               :code-mirror code-mirror}))))))
 
+; TODO - fix so that the other side parses the string, no vectors needed here (1)
 (reg-fx
   ::send-repl-eval
   (fn [[source forms]]
     (doall
       (map (fn [form]
              (when-not (str/blank? form)
-               (chsk-send! [:reptile/repl {:form   (str form)
+               (chsk-send! [:reptile/repl {:form   form
                                            :source source
                                            :forms  forms}]
                            (or (:timeout form) 3000))))
            forms))))
 
-(defn read-forms
-  "Read the string in the REPL buffer to obtain N forms (rather than just the first!)"
-  [repl-forms]
-  (let [pbr      (treader-types/string-push-back-reader repl-forms)
-        sentinel ::eof]
-    (take-while #(not= sentinel %)
-                (repeatedly #(rdr/read {:eof sentinel} pbr)))))
-
+; TODO - fix so that the other side parses the string, no vectors needed here (2)
 (reg-event-fx
   ::eval
   (fn [cofx [_ form-to-eval]]
-    {:db              (assoc (:db cofx) :form-to-eval form-to-eval)
-     ::send-repl-eval [:user (read-forms form-to-eval)]}))
+    (let [forms [form-to-eval]]
+      {:db              (assoc (:db cofx) :form-to-eval forms)
+       ::send-repl-eval [:user forms]})))
 
 (reg-event-db
   ::login-result

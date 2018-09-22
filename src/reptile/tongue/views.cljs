@@ -187,7 +187,7 @@
         current-form (if (and (= (first clean-form) \") (= (last clean-form) \"))
                        (pr-str new-value)
                        new-value)]
-    (re-frame/dispatch [::events/current-form current-form])))
+    (re-frame/dispatch [::events/current-form new-value])))
 
 (defn editor-did-mount
   []
