@@ -296,14 +296,14 @@
 (reg-event-fx
   ::add-lib
   (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]
-    (let [use-ns   "(use (quote clojure.tools.deps.alpha.repl))"
-          lib-spec (str "(add-lib (quote " (.trim name) ") {"
+    (let [use-ns   "(use 'clojure.tools.deps.alpha.repl)"
+          lib-spec (str "(add-lib '" (.trim name) " {"
                         (if maven
                           (str ":mvn/version \"" (.trim version) "\"")
                           (str ":git/url \"" (.trim url) "\" :sha \"" (.trim sha) "\""))
                         "})")]
       {:db              (assoc (:db cofx) :proposed-lib lib)
-       ::send-repl-eval [:system [use-ns lib-spec]]})))
+       ::send-repl-eval [:system (str use-ns "\n" lib-spec)]})))
 
 
 
