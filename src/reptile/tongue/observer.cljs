@@ -1,4 +1,4 @@
-(ns reptile.tongue.views
+(ns reptile.tongue.observer
   (:require [re-frame.core :as re-frame]
             [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
                                  md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
@@ -6,7 +6,6 @@
             [re-com.splits :refer [hv-split-args-desc]]
             [reptile.tongue.events :as events]
             [reptile.tongue.subs :as subs]
-            [reptile.tongue.observer :as observer]
             [reagent.core :as reagent]
             [cljsjs.codemirror]
             [cljsjs.codemirror.mode.clojure]
@@ -266,36 +265,6 @@
           [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
           [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])]]]]))
 
-(defn login-form
-  [form-data process-ok]
-  [border
-   :border "1px solid #eee"
-   :child [v-box
-           :size "auto"
-           :gap "30px" :padding "10px"
-           :children [[title :label "Welcome to REPtiLe" :level :level2]
-                      [v-box
-                       :gap "10px"
-                       :children [[label :label "User name"]
-                                  [input-text
-                                   :model (:user @form-data)
-                                   :on-change #(swap! form-data assoc :user %)]
-                                  [label :label "Shared secret"]
-                                  [input-text
-                                   :model (:secret @form-data)
-                                   :on-change #(swap! form-data assoc :secret %)]
-                                  [label :label "Observer mode?"]
-                                  [v-box
-                                   :children
-                                   [(doall (for [o ["true" "false"]]
-                                             ^{:key o}
-                                             [radio-button
-                                              :label o
-                                              :value o
-                                              :model (:observer @form-data)
-                                              :on-change #(swap! form-data assoc :observer %)]))]]
-                                  [gap :size "30px"]
-                                  [button :label "Access" :on-click process-ok]]]]]])
 
 (defn other-editor-panels
   [other-editors]
@@ -303,8 +272,9 @@
     [v-box :size "auto"
      :children (vec (map #(other-editor-panel %) other-editors))]))
 
-(defn main-panels
+(defn observer-panels
   [user-name other-editors]
+  (println "Observer mode")
   [v-box :style {:position "absolute"
                  :top      "18px"
                  :bottom   "0px"
@@ -320,32 +290,3 @@
     [gap :size "10px"]
     [status-bar user-name]]])
 
-; TODO - have a different key for observers rather selecting it on a form
-(defn login
-  []
-  (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
-        form-data  (reagent/atom {:user     "ray"
-                                  :secret   "warm-blooded-lizards-rock"
-                                  :observer "false"})
-        process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
-    (fn []
-      (when-not logged-in
-        [modal-panel
-         :backdrop-color "lightblue"
-         :backdrop-opacity 0.1
-         :child [login-form form-data process-ok]]))))
-
-(defn main-panel
-  []
-  (let [observer?     (= "true" @(re-frame/subscribe [::subs/observer]))
-        user-name     @(re-frame/subscribe [::subs/user-name])
-        other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
-    (if user-name
-      (if observer?
-        [observer/observer-panels user-name other-editors]
-        [main-panels user-name other-editors])
-      [login])))
-
-
-;; TODO - enable keymap support for VIM / EMACS
-;; which are available from CodeMirror

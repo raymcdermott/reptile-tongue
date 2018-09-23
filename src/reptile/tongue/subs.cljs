@@ -18,6 +18,11 @@
     (:user-name db)))
 
 (re-frame/reg-sub
+  ::observer
+  (fn [db]
+    (:observer db)))
+
+(re-frame/reg-sub
   ::form-from-history
   (fn [db]
     (:form-from-history db)))

@@ -290,6 +290,7 @@
   ::login
   (fn [cofx [_ login-options]]
     {:db            (assoc (:db cofx) :proposed-user (:user login-options)
+                                      :observer (:observer login-options)
                                       :user-name nil)
      ::server-login {:login-options login-options}}))
 
