@@ -52,7 +52,8 @@
   [editor]
   (fn [this]
     (let [node        (reagent/dom-node this)
-          options     {:options {:readOnly true}}
+          options     {:options {:lineWrapping true
+                                 :readOnly true}}
           code-mirror (code-mirror-parinfer node options)]
       (re-frame/dispatch [::events/other-editors-code-mirrors code-mirror editor]))))
 
@@ -193,9 +194,10 @@
   []
   (fn [this]
     (let [node            (reagent/dom-node this)
-          extra-edit-keys {:Alt-Enter #(re-frame/dispatch
+          extra-edit-keys {:Cmd-Enter #(re-frame/dispatch
                                          [::events/eval (.getValue %)])}
-          options         {:options {:autofocus     true
+          options         {:options {:lineWrapping true
+                                     :autofocus     true
                                      :matchBrackets true
                                      :lineNumbers   true
                                      :extraKeys     extra-edit-keys}}
@@ -226,6 +228,7 @@
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))]
     (fn []
+      (println "Edit mode " panel-name)
       (let [current-form @(re-frame/subscribe [::subs/current-form])]
         [v-box :size "auto"
          :children
@@ -235,7 +238,7 @@
           [h-box :align :center
            :children
            [[button
-             :label "Eval (or Alt-Enter)"
+             :label "Eval (or Cmd-Enter)"
              :on-click #(re-frame/dispatch [::events/eval current-form])]
             [gap :size "30px"]
             [md-circle-icon-button
@@ -324,7 +327,7 @@
 (defn login
   []
   (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
-        form-data  (reagent/atom {:user     "ray"
+        form-data  (reagent/atom {:user     "your-name"
                                   :secret   "warm-blooded-lizards-rock"
                                   :observer "false"})
         process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
@@ -337,7 +340,7 @@
 
 (defn main-panel
   []
-  (let [observer?     (= "true" @(re-frame/subscribe [::subs/observer]))
+  (let [observer?     (true? @(re-frame/subscribe [::subs/observer]))
         user-name     @(re-frame/subscribe [::subs/user-name])
         other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
     (if user-name

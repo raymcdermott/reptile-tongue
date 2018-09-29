@@ -95,23 +95,6 @@
   (fn [_ _]
     db/default-db))
 
-;; Keys -- very simple, only handle one modifier key (Cmd)
-
-(reg-event-db
-  ::key-down
-  (fn [db [_ key-code]]
-    (assoc db :key-down key-code)))
-
-(reg-event-db
-  ::key-up
-  (fn [db [_ _]]
-    (dissoc db :key-down)))
-
-(reg-event-db
-  ::key-press
-  (fn [db [_ key-code]]
-    (assoc db :key-press key-code)))
-
 ;; Text
 
 (reg-fx

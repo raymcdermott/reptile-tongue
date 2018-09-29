@@ -4,8 +4,14 @@
 (re-frame/reg-sub
   ::other-editors
   (fn [db [_ me]]
-    (let [editors (map name (keys (:editors db)))]
-      (remove #{me} (set editors)))))
+    (let [observer? (= "true" (:observer db))
+          user-data (:editors db)
+          editors   (map name
+                         (filter #(= "false" (:observer (get user-data %)))
+                                 (keys user-data)))]
+      (if observer?
+        editors
+        (remove #{me} (set editors))))))
 
 (re-frame/reg-sub
   ::user-keystrokes
@@ -20,7 +26,7 @@
 (re-frame/reg-sub
   ::observer
   (fn [db]
-    (:observer db)))
+    (= "true" (:observer db))))
 
 (re-frame/reg-sub
   ::form-from-history
@@ -36,12 +42,6 @@
   ::network-status
   (fn [db]
     (:network-status db)))
-
-(re-frame/reg-sub
-  ::key-down
-  (fn [db]
-    ; do the mapping here (91 = Cmd-, 17 Ctrl-, 18 Alt-)
-    (:key-down db)))
 
 (re-frame/reg-sub
   ::name

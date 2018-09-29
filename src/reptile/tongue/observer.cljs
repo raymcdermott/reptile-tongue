@@ -9,7 +9,6 @@
             [reagent.core :as reagent]
             [cljsjs.codemirror]
             [cljsjs.codemirror.mode.clojure]
-            [cljsjs.codemirror.addon.edit.matchbrackets]
             [cljsjs.parinfer-codemirror]
             [cljsjs.parinfer]))
 
@@ -51,7 +50,8 @@
   [editor]
   (fn [this]
     (let [node        (reagent/dom-node this)
-          options     {:options {:readOnly true}}
+          options     {:options {:lineWrapping true
+                                 :readOnly true}}
           code-mirror (code-mirror-parinfer node options)]
       (re-frame/dispatch [::events/other-editors-code-mirrors code-mirror editor]))))
 
@@ -70,7 +70,13 @@
    :children [[label :label editor]
               [other-editor-component editor]]])
 
-
+(defn other-editor-panels
+  [other-editors]
+  (if other-editors
+    [v-box :size "auto"
+     :children (vec (map #(other-editor-panel %) other-editors))]
+    [v-box :size "auto"
+     :children [[label :label "Waiting for editors"]]]))
 
 (defn eval-did-mount
   []
@@ -98,159 +104,6 @@
   [v-box :size "auto" :style eval-panel-style
    :children [[eval-component panel-name]]])
 
-(defn format-history-item
-  [historical-form]
-  [md-icon-button
-   :md-icon-name "zmdi-comment-text"
-   :tooltip historical-form
-   :on-click #(re-frame/dispatch [::events/from-history historical-form])])
-
-(defn visual-history
-  []
-  (fn []
-    (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
-      (when eval-results
-        [h-box :size "auto" :align :center :style history-style
-         :children (map format-history-item
-                        (distinct (map :form eval-results)))]))))
-
-(defn lib-type
-  [lib-data]
-  [v-box :gap "20px"
-   :children [(doall (for [maven? [:maven :git]]            ;; Notice the ugly "doall"
-                       ^{:key maven?}                       ;; key should be unique among siblings
-                       [radio-button
-                        :label (name maven?)
-                        :value maven?
-                        :model (if (:maven @lib-data) :maven :git)
-                        :on-change #(swap! lib-data assoc :maven (= :maven %))]))]])
-
-(defn dep-name
-  [lib-data]
-  [v-box :gap "10px" :children
-   [[label :label "Dependency Name"]
-    [input-text
-     :width "350px"
-     :model (:name @lib-data)
-     :on-change #(swap! lib-data assoc :name %)]]])
-
-; TODO - add :classifier, :extension, :exclusions options
-(defn maven-dep
-  [lib-data]
-  [v-box :gap "10px" :children
-   [[label :label "Maven Version"]
-    [input-text
-     :width "350px"
-     :model (:version @lib-data)
-     :on-change #(swap! lib-data assoc :version %)]]])
-
-; TODO - add :tag option
-(defn git-dep
-  [lib-data]
-  [v-box :gap "10px" :children
-   [[label :label "Repository URL"]
-    [input-text
-     :width "350px"
-     :model (:url @lib-data)
-     :on-change #(swap! lib-data assoc :url %)]
-    [label :label "Commit SHA"]
-    [input-text
-     :width "350px"
-     :model (:sha @lib-data)
-     :on-change #(swap! lib-data assoc :sha %)]]])
-
-(defn add-lib-form
-  [lib-data process-ok]
-  (fn []
-    [border
-     :border "1px solid #eee"
-     :child [v-box
-             :gap "30px" :padding "10px"
-             :height "450px"
-             :children
-             [[title :label "Add a dependency to the REPL" :level :level2]
-              [v-box
-               :gap "10px"
-               :children [[lib-type lib-data]
-                          [dep-name lib-data]               ; cond
-                          (if (:maven @lib-data)
-                            [maven-dep lib-data]
-                            [git-dep lib-data])
-                          [gap :size "30px"]
-                          [button :label "Add" :on-click process-ok]]]]]]))
-
-(defn notify-edits
-  [new-value]
-  "Place wrapping quotes around raw strings to save them from getting lost in transit"
-  (let [clean-form   (clojure.string/trim new-value)
-        current-form (if (and (= (first clean-form) \") (= (last clean-form) \"))
-                       (pr-str new-value)
-                       new-value)]
-    (re-frame/dispatch [::events/current-form new-value])))
-
-(defn editor-did-mount
-  []
-  (fn [this]
-    (let [node            (reagent/dom-node this)
-          extra-edit-keys {:Alt-Enter #(re-frame/dispatch
-                                         [::events/eval (.getValue %)])}
-          options         {:options {:autofocus     true
-                                     :matchBrackets true
-                                     :lineNumbers   true
-                                     :extraKeys     extra-edit-keys}}
-          code-mirror     (code-mirror-parinfer node options)]
-      (.on code-mirror "change" #(notify-edits (.getValue %)))
-      (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
-
-(defn edit-component
-  [panel-name]
-  (reagent/create-class
-    {:component-did-mount
-     (editor-did-mount)
-
-     :reagent-render
-     (code-mirror-text-area panel-name)}))
-
-; TODO: Refactor out the add-lib modal
-(defn edit-panel
-  [panel-name]
-  (let [show-add-lib? (reagent/atom false)
-        lib-data      (reagent/atom {:name    "clojurewerkz/money"
-                                     :version "1.10.0"
-                                     ; TODO: use a real SHA
-                                     :url     "https://github.com/iguana"
-                                     :sha     "888abcd888888b5cba88882b8888bdf59f9d88b6"
-                                     :maven   true})
-        add-lib-event (fn []
-                        (reset! show-add-lib? false)
-                        (re-frame/dispatch [::events/add-lib @lib-data]))]
-    (fn []
-      (let [current-form @(re-frame/subscribe [::subs/current-form])]
-        [v-box :size "auto"
-         :children
-         [[box :size "auto" :style eval-panel-style :child
-           [edit-component panel-name]]
-          [gap :size "5px"]
-          [h-box :align :center
-           :children
-           [[button
-             :label "Eval (or Alt-Enter)"
-             :on-click #(re-frame/dispatch [::events/eval current-form])]
-            [gap :size "30px"]
-            [md-circle-icon-button
-             :md-icon-name "zmdi-plus"
-             :tooltip "Add a library"
-             :size :smaller
-             :on-click #(reset! show-add-lib? true)]
-            (when @show-add-lib?
-              [modal-panel
-               :backdrop-color "lightgray"
-               :backdrop-on-click #(reset! show-add-lib? false)
-               :backdrop-opacity 0.7
-               :child [add-lib-form lib-data add-lib-event]])
-            [gap :size "20px"]
-            [visual-history]]]]]))))
-
 (defn status-bar
   [user-name]
   (let [network-status @(re-frame/subscribe [::subs/network-status])
@@ -258,35 +111,23 @@
     [v-box :children
      [[line]
       [h-box :size "20px" :style status-style :gap "20px" :align :center :children
-       [[label :label (str "Editor: " user-name)]
+       [[label :label (str "Observer: " user-name)]
         [line]
         [label :style network-style :label "Connect Status:"]
         (if network-status
           [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
           [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])]]]]))
 
-
-(defn other-editor-panels
-  [other-editors]
-  (when other-editors
-    [v-box :size "auto"
-     :children (vec (map #(other-editor-panel %) other-editors))]))
-
 (defn observer-panels
   [user-name other-editors]
-  (println "Observer mode")
+  (println "Observer mode " user-name)
   [v-box :style {:position "absolute"
                  :top      "18px"
                  :bottom   "0px"
                  :width    "100%"}
    :children
    [[h-split :splitter-size "2px" :initial-split "45%"
-     :panel-1 (if (empty? other-editors)
-                [edit-panel user-name]
-                [v-split :initial-split "30%"
-                 :panel-1 [other-editor-panels other-editors]
-                 :panel-2 [edit-panel user-name]])
-     :panel-2 [eval-panel user-name]]
+     :panel-1 [other-editor-panels other-editors]
+     :panel-2 [eval-panel "Guest"]]
     [gap :size "10px"]
     [status-bar user-name]]])
-
