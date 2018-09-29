@@ -1,8 +1,6 @@
-^{:ring-handler reptile.tongue.server/handler}
 {:main            reptile.tongue.core
  :output-to       "resources/public/js/compiled/app.js"
  :output-dir      "resources/public/js/compiled/out"
  :asset-path      "js/compiled/out"
- :closure-defines {reptile.tongue.config/TAIL_SERVER      "localhost"
-                   reptile.tongue.config/TAIL_SERVER_PORT "8888"}
+ :closure-defines {reptile.tongue.config/TAIL_SERVER "reptile.extemporay.io"}
  :external-config {:devtools/config {:features-to-install :all}}}

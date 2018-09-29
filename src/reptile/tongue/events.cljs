@@ -180,8 +180,8 @@
 
 (defn format-response
   [result]
-  (let [{:keys [val tag ex cause]} result
-        spec-err   (and ex (read-ex ex))
+  (let [{:keys [val tag cause]} result
+        spec-err   (and (= :err tag) (read-ex val))
         exception? (or (:cause spec-err) cause)]
     (cond
       exception?
