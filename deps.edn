@@ -1,4 +1,6 @@
-{:deps    {org.clojure/clojure {:mvn/version "1.10.0-alpha6"}}
+{:deps    {org.clojure/clojure {:mvn/version "1.10.0-alpha6"}
+           reptile-body        {:git/url "https://github.com/raymcdermott/reptile-body.git"
+                                :sha     "725aaad8c48293282db7489f1b96dc8f37b692be"}}
  :aliases {:fig   {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
                                  com.bhauman/figwheel-main       {:mvn/version "0.1.8"}
                                  com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
@@ -18,5 +20,4 @@
                    :extra-paths ["resources" "target"]
                    :main-opts   ["-m" "figwheel.main"]}
            :build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}}}
-
+           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
