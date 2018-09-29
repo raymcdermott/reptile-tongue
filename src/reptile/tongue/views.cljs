@@ -6,7 +6,7 @@
             [re-com.splits :refer [hv-split-args-desc]]
             [reptile.tongue.events :as events]
             [reptile.tongue.subs :as subs]
-            [cljs.reader :as edn]
+            [reptile.tongue.observer :as observer]
             [reagent.core :as reagent]
             [cljsjs.codemirror]
             [cljsjs.codemirror.mode.clojure]
@@ -52,7 +52,8 @@
   [editor]
   (fn [this]
     (let [node        (reagent/dom-node this)
-          options     {:options {:readOnly true}}
+          options     {:options {:lineWrapping true
+                                 :readOnly true}}
           code-mirror (code-mirror-parinfer node options)]
       (re-frame/dispatch [::events/other-editors-code-mirrors code-mirror editor]))))
 
@@ -193,9 +194,10 @@
   []
   (fn [this]
     (let [node            (reagent/dom-node this)
-          extra-edit-keys {:Alt-Enter #(re-frame/dispatch
+          extra-edit-keys {:Cmd-Enter #(re-frame/dispatch
                                          [::events/eval (.getValue %)])}
-          options         {:options {:autofocus     true
+          options         {:options {:lineWrapping true
+                                     :autofocus     true
                                      :matchBrackets true
                                      :lineNumbers   true
                                      :extraKeys     extra-edit-keys}}
@@ -226,6 +228,7 @@
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))]
     (fn []
+      (println "Edit mode " panel-name)
       (let [current-form @(re-frame/subscribe [::subs/current-form])]
         [v-box :size "auto"
          :children
@@ -235,7 +238,7 @@
           [h-box :align :center
            :children
            [[button
-             :label "Eval (or Alt-Enter)"
+             :label "Eval (or Cmd-Enter)"
              :on-click #(re-frame/dispatch [::events/eval current-form])]
             [gap :size "30px"]
             [md-circle-icon-button
@@ -266,7 +269,6 @@
           [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
           [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])]]]]))
 
-
 (defn login-form
   [form-data process-ok]
   [border
@@ -285,6 +287,16 @@
                                   [input-text
                                    :model (:secret @form-data)
                                    :on-change #(swap! form-data assoc :secret %)]
+                                  [label :label "Observer mode?"]
+                                  [v-box
+                                   :children
+                                   [(doall (for [o ["true" "false"]]
+                                             ^{:key o}
+                                             [radio-button
+                                              :label o
+                                              :value o
+                                              :model (:observer @form-data)
+                                              :on-change #(swap! form-data assoc :observer %)]))]]
                                   [gap :size "30px"]
                                   [button :label "Access" :on-click process-ok]]]]]])
 
@@ -311,11 +323,13 @@
     [gap :size "10px"]
     [status-bar user-name]]])
 
+; TODO - have a different key for observers rather selecting it on a form
 (defn login
   []
   (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
-        form-data  (reagent/atom {:user   "ray"
-                                  :secret "warm-blooded-lizards-rock"})
+        form-data  (reagent/atom {:user     "your-name"
+                                  :secret   "warm-blooded-lizards-rock"
+                                  :observer "false"})
         process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
     (fn []
       (when-not logged-in
@@ -326,10 +340,13 @@
 
 (defn main-panel
   []
-  (let [user-name     @(re-frame/subscribe [::subs/user-name])
+  (let [observer?     (true? @(re-frame/subscribe [::subs/observer]))
+        user-name     @(re-frame/subscribe [::subs/user-name])
         other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
     (if user-name
-      [main-panels user-name other-editors]
+      (if observer?
+        [observer/observer-panels user-name other-editors]
+        [main-panels user-name other-editors])
       [login])))
 
 
