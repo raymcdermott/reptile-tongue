@@ -1,6 +1,6 @@
 {:deps    {org.clojure/clojure {:mvn/version "1.10.0-alpha6"}
            reptile-body        {:git/url "https://github.com/raymcdermott/reptile-body.git"
-                                :sha     "254cb1dd3444557a0dace9797940875c6bd12fe4"}}
+                                :sha     "5fae19a23fae9df2b8cfd26b6d631142758ca538"}}
  :aliases {:fig   {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
                                  com.bhauman/figwheel-main       {:mvn/version "0.1.8"}
                                  com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
