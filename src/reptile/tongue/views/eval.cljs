@@ -39,15 +39,15 @@
 (defn eval-panel
   [panel-name]
   [v-box :size "auto" :style eval-panel-style
-   :children [[h-box :justify :end :gap "20px" :size "40px"
+   :children [[h-box :align :center :justify :end :gap "20px" :size "40px"
                :children [[md-icon-button
-                           :tooltip "Show evaluation times"
+                           :tooltip "Show evaluation times (TBD)"
                            :md-icon-name "zmdi-timer"]
                           [md-icon-button
-                           :tooltip "Clear evaluations"
+                           :tooltip "Clear evaluations (TBD)"
                            :md-icon-name "zmdi-delete"]
                           [md-icon-button
-                           :tooltip "Wrap text"
+                           :tooltip "Wrap text (default ON)"
                            :md-icon-name "zmdi-wrap-text"]]]
               [line]
               [box :size "auto"

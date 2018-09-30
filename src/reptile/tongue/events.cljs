@@ -5,17 +5,16 @@
     [reptile.tongue.config :as config]
     [reptile.tongue.db :as db]
     [clojure.string :as str]
-    [taoensso.encore :refer [have have?]]
+    [taoensso.encore :as encore :refer [have have?]]
     [taoensso.timbre :refer [tracef debugf infof warnf errorf]]
     [taoensso.sente :as sente :refer [cb-success?]]
     [taoensso.sente.packers.transit :as sente-transit]
     [cljs.reader :as rdr]
-    [cljs.tools.reader.reader-types :as treader-types]))
+    [taoensso.timbre :as timbre]))
 
-;; (timbre/set-level! :trace) ; Uncomment for more logging
+;(timbre/set-level! :trace)                                  ; Uncomment for more logging
 
 (declare chsk ch-chsk chsk-send! chsk-state)
-
 
 ;;;;; Sente event handlers
 
@@ -46,7 +45,7 @@
   ::update-forms
   (fn [{:keys [db]} [_ update]]
     (when-let [code-mirror (:code-mirror (first (filter #(= (:editor %) (:user update))
-                                                        (:editor-code-mirrors db))))]
+                                                        (:other-editor-code-mirrors db))))]
       (.setValue code-mirror (:form update)))))
 
 (reg-event-db
@@ -211,9 +210,11 @@
 (reg-event-db
   ::other-editors-code-mirrors
   (fn [db [_ code-mirror editor]]
-    (let [code-mirrors (:editor-code-mirrors db)]
-      (assoc db :editor-code-mirrors (set (conj code-mirrors {:editor      editor
-                                                              :code-mirror code-mirror}))))))
+    (let [code-mirrors    (:other-editor-code-mirrors db)
+          code-mirror-set (set (conj code-mirrors {:editor      editor
+                                                   :code-mirror code-mirror}))]
+      (assoc db :other-editor-code-mirrors code-mirror-set))))
+
 (reg-fx
   ::send-repl-eval
   (fn [[source form]]
@@ -243,8 +244,6 @@
         {:type   :auto
          :host   config/server-host
          :packer packer})]
-
-  (println "server-connect chsk" chsk "\nch-recv" ch-recv "\nsend-fn" send-fn "\nstate" state)
 
   (def chsk chsk)
 

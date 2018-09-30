@@ -10,6 +10,7 @@
             [reptile.tongue.subs :as subs]
             [reptile.tongue.views.other-editor :as other-editor]
             [reptile.tongue.views.eval :as eval-view]
+            [reptile.tongue.views.visual-history :as visual-history]
             [reptile.tongue.views.status :as status]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
@@ -109,12 +110,7 @@
 
 (defn notify-edits
   [new-value]
-  "Place wrapping quotes around raw strings to save them from getting lost in transit"
-  (let [clean-form   (clojure.string/trim new-value)
-        current-form (if (and (= (first clean-form) \") (= (last clean-form) \"))
-                       (pr-str new-value)
-                       new-value)]
-    (re-frame/dispatch [::events/current-form new-value])))
+  (re-frame/dispatch [::events/current-form new-value]))
 
 (defn editor-did-mount
   []
@@ -154,7 +150,6 @@
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))]
     (fn []
-      (println "Edit mode " panel-name)
       (let [current-form @(re-frame/subscribe [::subs/current-form])]
         [v-box :size "auto"
          :children
@@ -170,16 +165,13 @@
             [md-circle-icon-button
              :md-icon-name "zmdi-plus"
              :tooltip "Add a library"
-             :size :smaller
              :on-click #(reset! show-add-lib? true)]
             (when @show-add-lib?
               [modal-panel
                :backdrop-color "lightgray"
                :backdrop-on-click #(reset! show-add-lib? false)
                :backdrop-opacity 0.7
-               :child [add-lib-form lib-data add-lib-event]])
-            [gap :size "20px"]
-            [visual-history]]]]]))))
+               :child [add-lib-form lib-data add-lib-event]])]]]]))))
 
 (defn main-panels
   [user-name other-editors]
@@ -195,6 +187,8 @@
                  :panel-1 [other-editor/other-panels other-editors]
                  :panel-2 [edit-panel user-name]])
      :panel-2 [eval-view/eval-panel user-name]]
+    [gap :size "10px"]
+    [visual-history/history]
     [gap :size "10px"]
     [status/status-bar user-name]]])
 
