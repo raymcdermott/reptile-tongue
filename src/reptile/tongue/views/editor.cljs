@@ -1,18 +1,16 @@
-(ns reptile.tongue.views
+(ns reptile.tongue.views.editor
   (:require [re-frame.core :as re-frame]
             [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
                                  md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
                                  radio-button p]]
             [re-com.splits :refer [hv-split-args-desc]]
+            [reagent.core :as reagent]
+            [reptile.tongue.code-mirror :as code-mirror]
             [reptile.tongue.events :as events]
             [reptile.tongue.subs :as subs]
-            [reptile.tongue.observer :as observer]
-            [reagent.core :as reagent]
-            [cljsjs.codemirror]
-            [cljsjs.codemirror.mode.clojure]
-            [cljsjs.codemirror.addon.edit.matchbrackets]
-            [cljsjs.parinfer-codemirror]
-            [cljsjs.parinfer]))
+            [reptile.tongue.views.other-editor :as other-editor]
+            [reptile.tongue.views.eval :as eval-view]
+            [reptile.tongue.views.status :as status]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
@@ -27,78 +25,6 @@
                          {:font-size   "10px"
                           :font-weight "lighter"
                           :color       "lightgrey"}))
-
-;; CodeMirror support
-
-(defn code-mirror-text-area
-  [id]
-  (fn [] [:textarea {:id            id
-                     :auto-complete false
-                     :default-value ""}]))
-
-(defn code-mirror-parinfer
-  [dom-node config]
-  (let [editor-options (clj->js (merge {:mode :clojure} (:options config)))
-        code-mirror    (js/CodeMirror.fromTextArea dom-node editor-options)
-        editor-height  (get-in config [:size :height] "100%")
-        editor-width   (get-in config [:size :width] "100%")]
-    (.setSize code-mirror editor-height editor-width)
-    (js/parinferCodeMirror.init code-mirror)
-    code-mirror))
-
-;; Components
-
-(defn other-editor-did-mount
-  [editor]
-  (fn [this]
-    (let [node        (reagent/dom-node this)
-          options     {:options {:lineWrapping true
-                                 :readOnly true}}
-          code-mirror (code-mirror-parinfer node options)]
-      (re-frame/dispatch [::events/other-editors-code-mirrors code-mirror editor]))))
-
-(defn other-editor-component
-  [editor]
-  (reagent/create-class
-    {:component-did-mount
-     (other-editor-did-mount editor)
-
-     :reagent-render
-     (code-mirror-text-area editor)}))
-
-(defn other-editor-panel
-  [editor]
-  [v-box :size "auto" :style eval-panel-style
-   :children [[label :label editor]
-              [other-editor-component editor]]])
-
-
-
-(defn eval-did-mount
-  []
-  (fn [this]
-    (letfn [(scrollToBottom [cm]
-              (.scrollIntoView cm #js {:line (.lastLine cm)}))]
-      (let [node        (reagent/dom-node this)
-            options     {:options {:lineWrapping true
-                                   :readOnly     true}}
-            code-mirror (code-mirror-parinfer node options)]
-        (.on code-mirror "change" #(scrollToBottom code-mirror))
-        (re-frame/dispatch [::events/eval-code-mirror code-mirror])))))
-
-(defn eval-component
-  [panel-name]
-  (reagent/create-class
-    {:component-did-mount
-     (eval-did-mount)
-
-     :reagent-render
-     (code-mirror-text-area (str "eval-" panel-name))}))
-
-(defn eval-panel
-  [panel-name]
-  [v-box :size "auto" :style eval-panel-style
-   :children [[eval-component panel-name]]])
 
 (defn format-history-item
   [historical-form]
@@ -201,7 +127,7 @@
                                      :matchBrackets true
                                      :lineNumbers   true
                                      :extraKeys     extra-edit-keys}}
-          code-mirror     (code-mirror-parinfer node options)]
+          code-mirror     (code-mirror/parinfer node options)]
       (.on code-mirror "change" #(notify-edits (.getValue %)))
       (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
 
@@ -212,7 +138,7 @@
      (editor-did-mount)
 
      :reagent-render
-     (code-mirror-text-area panel-name)}))
+     (code-mirror/text-area panel-name)}))
 
 ; TODO: Refactor out the add-lib modal
 (defn edit-panel
@@ -255,57 +181,6 @@
             [gap :size "20px"]
             [visual-history]]]]]))))
 
-(defn status-bar
-  [user-name]
-  (let [network-status @(re-frame/subscribe [::subs/network-status])
-        network-style  {:color (if network-status "rgba(127, 191, 63, 0.32)" "red")}]
-    [v-box :children
-     [[line]
-      [h-box :size "20px" :style status-style :gap "20px" :align :center :children
-       [[label :label (str "Editor: " user-name)]
-        [line]
-        [label :style network-style :label "Connect Status:"]
-        (if network-status
-          [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
-          [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])]]]]))
-
-(defn login-form
-  [form-data process-ok]
-  [border
-   :border "1px solid #eee"
-   :child [v-box
-           :size "auto"
-           :gap "30px" :padding "10px"
-           :children [[title :label "Welcome to REPtiLe" :level :level2]
-                      [v-box
-                       :gap "10px"
-                       :children [[label :label "User name"]
-                                  [input-text
-                                   :model (:user @form-data)
-                                   :on-change #(swap! form-data assoc :user %)]
-                                  [label :label "Shared secret"]
-                                  [input-text
-                                   :model (:secret @form-data)
-                                   :on-change #(swap! form-data assoc :secret %)]
-                                  [label :label "Observer mode?"]
-                                  [v-box
-                                   :children
-                                   [(doall (for [o ["true" "false"]]
-                                             ^{:key o}
-                                             [radio-button
-                                              :label o
-                                              :value o
-                                              :model (:observer @form-data)
-                                              :on-change #(swap! form-data assoc :observer %)]))]]
-                                  [gap :size "30px"]
-                                  [button :label "Access" :on-click process-ok]]]]]])
-
-(defn other-editor-panels
-  [other-editors]
-  (when other-editors
-    [v-box :size "auto"
-     :children (vec (map #(other-editor-panel %) other-editors))]))
-
 (defn main-panels
   [user-name other-editors]
   [v-box :style {:position "absolute"
@@ -317,37 +192,11 @@
      :panel-1 (if (empty? other-editors)
                 [edit-panel user-name]
                 [v-split :initial-split "30%"
-                 :panel-1 [other-editor-panels other-editors]
+                 :panel-1 [other-editor/other-panels other-editors]
                  :panel-2 [edit-panel user-name]])
-     :panel-2 [eval-panel user-name]]
+     :panel-2 [eval-view/eval-panel user-name]]
     [gap :size "10px"]
-    [status-bar user-name]]])
-
-; TODO - have a different key for observers rather selecting it on a form
-(defn login
-  []
-  (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
-        form-data  (reagent/atom {:user     "your-name"
-                                  :secret   "warm-blooded-lizards-rock"
-                                  :observer "false"})
-        process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
-    (fn []
-      (when-not logged-in
-        [modal-panel
-         :backdrop-color "lightblue"
-         :backdrop-opacity 0.1
-         :child [login-form form-data process-ok]]))))
-
-(defn main-panel
-  []
-  (let [observer?     (true? @(re-frame/subscribe [::subs/observer]))
-        user-name     @(re-frame/subscribe [::subs/user-name])
-        other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
-    (if user-name
-      (if observer?
-        [observer/observer-panels user-name other-editors]
-        [main-panels user-name other-editors])
-      [login])))
+    [status/status-bar user-name]]])
 
 
 ;; TODO - enable keymap support for VIM / EMACS

@@ -2,12 +2,12 @@
   (:require [reagent.core :as reagent]
             [re-frame.core :as re-frame]
             [reptile.tongue.events :as events]
-            [reptile.tongue.views :as views]))
+            [reptile.tongue.main-view :as main-view]))
 
 
 (defn mount-root []
   (re-frame/clear-subscription-cache!)
-  (reagent/render [views/main-panel]
+  (reagent/render [main-view/main-panel]
                   (.getElementById js/document "app")))
 
 (defn ^:export init []
