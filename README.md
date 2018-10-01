@@ -12,6 +12,8 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the REPtiLE shared 
 - [X] Parinfer integration
 - [X] Show matching / balancing parens
 - [X] Add a library on demand (Maven & Git SHAs)
+- [ ] Code completion / suggestions 
+- [ ] Expose function docstring documentation
 - [ ] Expandable exception viewing 
 - [ ] Per user name spaces
 - [ ] Incremental feedback on long running REPL evaluations
