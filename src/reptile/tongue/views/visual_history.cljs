@@ -7,6 +7,10 @@
             [reptile.tongue.events :as events]
             [reptile.tongue.subs :as subs]))
 
+(def label-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
+                  :font-size   "11px"
+                  :color       "grey"})
+
 (def history-style {:padding "5px 5px 0px 10px"})
 
 (defn format-history-item
@@ -21,6 +25,6 @@
   (fn []
     (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
       (when eval-results
-        [h-box :size "20px" :align :center :style history-style
+        [h-box :height "20px" :align :center :style history-style
          :children (map format-history-item
                         (distinct (map :form eval-results)))]))))

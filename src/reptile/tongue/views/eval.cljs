@@ -5,6 +5,7 @@
                                  radio-button p]]
             [re-com.splits :refer [hv-split-args-desc]]
             [reagent.core :as reagent]
+            [reptile.tongue.subs :as subs]
             [reptile.tongue.events :as events]
             [reptile.tongue.code-mirror :as code-mirror]))
 
@@ -38,17 +39,27 @@
 
 (defn eval-panel
   [panel-name]
-  [v-box :size "auto" :style eval-panel-style
-   :children [[h-box :align :center :justify :end :gap "20px" :size "40px"
-               :children [[md-icon-button
-                           :tooltip "Show evaluation times (TBD)"
-                           :md-icon-name "zmdi-timer"]
-                          [md-icon-button
-                           :tooltip "Clear evaluations (TBD)"
-                           :md-icon-name "zmdi-delete"]
-                          [md-icon-button
-                           :tooltip "Wrap text (default ON)"
-                           :md-icon-name "zmdi-wrap-text"]]]
-              [line]
-              [box :size "auto"
-               :child [eval-component panel-name]]]])
+  (fn
+    []
+    (let [show-times? @(re-frame/subscribe [::subs/show-times])]
+      [v-box :size "auto" :style eval-panel-style
+       :children [[h-box :align :center :justify :end :gap "20px" :height "20px"
+                   :children [[md-icon-button
+                               :tooltip "Show evaluation times"
+                               :size :smaller
+                               :md-icon-name "zmdi-timer"
+                               :style {:color (if show-times? "red" "black")}
+                               :on-click #(re-frame/dispatch [::events/show-times (if show-times?
+                                                                                    (false? show-times?)
+                                                                                    true)])]
+                              [md-icon-button
+                               :tooltip "Clear evaluations"
+                               :size :smaller
+                               :md-icon-name "zmdi-delete"
+                               :on-click #(re-frame/dispatch [::events/clear-evals])]
+                              [md-icon-button
+                               :tooltip "Wrap text (default ON)"
+                               :size :smaller
+                               :md-icon-name "zmdi-wrap-text"]]]
+                  [box :size "auto"
+                   :child [eval-component panel-name]]]])))

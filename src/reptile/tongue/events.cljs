@@ -14,9 +14,8 @@
 
 ;(timbre/set-level! :trace)                                  ; Uncomment for more logging
 
+; --- WS client ---
 (declare chsk ch-chsk chsk-send! chsk-state)
-
-;;;;; Sente event handlers
 
 (defmulti -event-msg-handler "Multimethod to handle Sente `event-msg`s"
           ; Dispatch on event-id
@@ -40,22 +39,8 @@
       (println "Channel socket successfully established!: %s" new-state-map)
       (println "Channel socket state change: %s" new-state-map))))
 
-;; Route changes to the editor code-mirror
-(reg-event-fx
-  ::update-forms
-  (fn [{:keys [db]} [_ update]]
-    (when-let [code-mirror (:code-mirror (first (filter #(= (:editor %) (:user update))
-                                                        (:other-editor-code-mirrors db))))]
-      (.setValue code-mirror (:form update)))))
-
-(reg-event-db
-  ::editors
-  (fn [db [_ editors]]
-    (assoc db :editors editors)))
-
 (defmethod -event-msg-handler :chsk/recv
   [{:keys [?data]}]
-  ; TODO - This works but I think it might be the wrong way to send / process custom events
   (cond
     (= (first ?data) :fast-push/keystrokes)
     (re-frame/dispatch [::update-forms (first (rest ?data))])
@@ -75,10 +60,6 @@
   [{:keys [?data]}]
   (println "Handshake: %s" ?data))
 
-;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
-
-;;;; Sente event router (our `event-msg-handler` loop)
-
 (defonce router_ (atom nil))
 (defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
 (defn start-router! []
@@ -87,15 +68,26 @@
           (sente/start-client-chsk-router!
             ch-chsk event-msg-handler)))
 
-;; Events
-
+; --- Events ---
 (reg-event-db
   ::initialize-db
   (fn [_ _]
     db/default-db))
 
-;; Text
+;; Reflect changes on other editor's code-mirror
+(reg-event-fx
+  ::update-forms
+  (fn [{:keys [db]} [_ update]]
+    (when-let [code-mirror (:code-mirror (first (filter #(= (:editor %) (:user update))
+                                                        (:other-editor-code-mirrors db))))]
+      (.setValue code-mirror (:form update)))))
 
+(reg-event-db
+  ::editors
+  (fn [db [_ editors]]
+    (assoc db :editors editors)))
+
+;; Text
 (reg-fx
   ::send-current-form
   (fn [{:keys [current-form user-name timeout]}]
@@ -125,7 +117,7 @@
   ::from-history
   (fn [{:keys [db]} [_ history-form]]
     (let [code-mirror (:editor-code-mirror db)]
-      {:db                     (assoc db :from-history history-form)
+      {:db                     (assoc db :form-from-history history-form)
        ::set-code-mirror-value {:new-value   history-form
                                 :code-mirror code-mirror}})))
 
@@ -161,8 +153,8 @@
            (apply str)))
 
 (defn format-response
-  [result]
-  (let [{:keys [val tag cause]} result
+  [show-times? result]
+  (let [{:keys [val tag cause ms]} result
         spec-err   (and (= :err tag) (read-ex val))
         exception? (or (:cause spec-err) cause)]
     (cond
@@ -175,27 +167,45 @@
       val
 
       (= tag :ret)
-      (str "=> " (format-nil-vals val) "\n"))))
+      (str (when show-times? (str ms " ms ")) "=> " (format-nil-vals val) "\n"))))
 
 (defn format-responses
-  [{:keys [form prepl-response]}]
-  (str form "\n" (doall (apply str (map format-response prepl-response)))))
+  [show-times? {:keys [form prepl-response]}]
+  (str form "\n" (doall (apply str (map (partial format-response show-times?) prepl-response)))))
 
 (defn format-results
-  [results]
-  (doall (map format-responses results)))
+  [show-times? results]
+  (doall (map (partial format-responses show-times?) results)))
+
+(reg-event-fx
+  ::clear-evals
+  (fn [{:keys [db]} [_ _]]
+    (when-let [code-mirror (:eval-code-mirror db)]
+      {:db                     (assoc db :eval-results [])
+       ::set-code-mirror-value {:new-value   ""
+                                :code-mirror code-mirror}})))
 
 (reg-event-fx
   ::eval-result
   (fn [{:keys [db]} [_ eval-result]]
     (let [code-mirror  (:eval-code-mirror db)
+          show-times?  (true? (:show-times db))
           eval-results (cons eval-result (:eval-results db))
-          str-results  (apply str (reverse (format-results eval-results)))]
+          str-results  (apply str (reverse (format-results show-times? eval-results)))]
       {:db                     (assoc db :eval-results eval-results)
        ::set-code-mirror-value {:new-value   str-results
                                 :code-mirror code-mirror}})))
 
-;; Compress code needed for setting of code mirror instances
+(reg-event-fx
+  ::show-times
+  (fn [{:keys [db]} [_ show-times]]
+    (let [code-mirror  (:eval-code-mirror db)
+          show-times?  (true? show-times)
+          eval-results (:eval-results db)
+          str-results  (apply str (reverse (format-results show-times? eval-results)))]
+      {:db                     (assoc db :show-times show-times)
+       ::set-code-mirror-value {:new-value   str-results
+                                :code-mirror code-mirror}})))
 
 (reg-event-db
   ::eval-code-mirror

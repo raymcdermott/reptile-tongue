@@ -38,6 +38,12 @@
   (fn [db]
     (:eval-results db)))
 
+
+(re-frame/reg-sub
+  ::show-times
+  (fn [db]
+    (:show-times db)))
+
 (re-frame/reg-sub
   ::network-status
   (fn [db]

@@ -21,7 +21,7 @@
     [v-box :children
      [[line]
       [h-box :size "20px" :style status-style :gap "20px" :align :center :children
-       [[label :label (str "Observer: " user-name)]
+       [[label :label (str "Login: " user-name)]
         [line]
         [label :style network-style :label "Connect Status:"]
         (if network-status

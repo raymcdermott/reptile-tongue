@@ -63,7 +63,6 @@
      :model (:name @lib-data)
      :on-change #(swap! lib-data assoc :name %)]]])
 
-; TODO - add :classifier, :extension, :exclusions options
 (defn maven-dep
   [lib-data]
   [v-box :gap "10px" :children
@@ -73,7 +72,6 @@
      :model (:version @lib-data)
      :on-change #(swap! lib-data assoc :version %)]]])
 
-; TODO - add :tag option
 (defn git-dep
   [lib-data]
   [v-box :gap "10px" :children
@@ -118,7 +116,7 @@
     (let [node            (reagent/dom-node this)
           extra-edit-keys {:Cmd-Enter #(re-frame/dispatch
                                          [::events/eval (.getValue %)])}
-          options         {:options {:lineWrapping true
+          options         {:options {:lineWrapping  true
                                      :autofocus     true
                                      :matchBrackets true
                                      :lineNumbers   true
@@ -142,9 +140,8 @@
   (let [show-add-lib? (reagent/atom false)
         lib-data      (reagent/atom {:name    "clojurewerkz/money"
                                      :version "1.10.0"
-                                     ; TODO: use a real SHA
-                                     :url     "https://github.com/iguana"
-                                     :sha     "888abcd888888b5cba88882b8888bdf59f9d88b6"
+                                     :url     "https://github.com/?????"
+                                     :sha     "666-???"
                                      :maven   true})
         add-lib-event (fn []
                         (reset! show-add-lib? false)
@@ -161,9 +158,9 @@
            [[button
              :label "Eval (or Cmd-Enter)"
              :on-click #(re-frame/dispatch [::events/eval current-form])]
-            [gap :size "30px"]
-            [md-circle-icon-button
-             :md-icon-name "zmdi-plus"
+            [gap :size "150px"]
+            [md-icon-button
+             :md-icon-name "zmdi-library"
              :tooltip "Add a library"
              :on-click #(reset! show-add-lib? true)]
             (when @show-add-lib?
@@ -191,7 +188,3 @@
     [visual-history/history]
     [gap :size "10px"]
     [status/status-bar user-name]]])
-
-
-;; TODO - enable keymap support for VIM / EMACS
-;; which are available from CodeMirror
