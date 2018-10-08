@@ -93,7 +93,7 @@
 ; TODO - many colours
 (defn styled-editors
   [editors]
-  (let [editor-colors ["red" "blue" "green" "orange" "gray"]]
+  (let [editor-colors ["red" "blue" "black" "green" "orange" "gray"]]
     (sort-by :name (map #(styled-editor %1 %2) editors editor-colors))))
 
 (defn editor-properties

@@ -26,34 +26,36 @@
      :reagent-render
      (code-mirror/text-area editor)}))
 
-(defn panel-controls
+(defn editor-activity
   [editor]
-  [v-box :align :center :justify :center
-   :children
-   [[md-icon-button
-     :tooltip (:name editor)
-     :md-icon-name "zmdi-account-circle"
-     :style (:style editor)
-     :on-click #(re-frame/dispatch [::events/visibility-toggle
-                                    (:editor editor)])]]])
+  [md-icon-button
+   :tooltip (:name editor)
+   :md-icon-name "zmdi-keyboard"
+   :style (:style editor)
+   :on-click #(re-frame/dispatch [::events/visibility-toggle
+                                  (:editor editor)])])
+
+(defn editor-icon
+  [editor]
+  [md-icon-button
+   :tooltip (:name editor)
+   :md-icon-name "zmdi-account-circle"
+   :style (:style editor)
+   :on-click #(re-frame/dispatch [::events/visibility-toggle
+                                  (:editor editor)])])
 
 (defn min-panel
   [editor]
   [h-box :align :center :justify :center :size "80px"
    :children
-   [[label
-     :label (:abbr editor)
-     :style (:style editor)]
-    [v-box :size "auto"
-     :children
-     [[panel-controls editor]]]
-    [gap :size "30px"]]])
+   [[editor-activity editor]
+    [editor-icon editor]]])
 
 (defn other-panel
   [editor]
   [h-box :size "100px"
    :children
-   [[panel-controls editor]
+   [[editor-icon editor]
     [v-box :size "auto" :style eval-view/eval-panel-style
      :children
      [[other-component (:editor editor)]]]]])
