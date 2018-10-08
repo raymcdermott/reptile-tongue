@@ -1,17 +1,20 @@
 (ns reptile.tongue.code-mirror
-  (:require [cljsjs.codemirror]
-            [cljsjs.codemirror.mode.clojure]
-            [cljsjs.codemirror.addon.edit.matchbrackets]
-            [cljsjs.parinfer-codemirror]
-            [cljsjs.parinfer]))
+  (:require
+    [cljsjs.codemirror]
+    [cljsjs.codemirror.mode.clojure]
+    [cljsjs.codemirror.addon.edit.matchbrackets]
+    [cljsjs.parinfer-codemirror]
+    [cljsjs.parinfer]))
 
 ;; CodeMirror support
 
 (defn text-area
   [id]
-  (fn [] [:textarea {:id            id
-                     :auto-complete false
-                     :default-value ""}]))
+  (fn
+    []
+    [:textarea {:id            id
+                :auto-complete false
+                :default-value ""}]))
 
 (defn parinfer
   [dom-node config]

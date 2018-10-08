@@ -1,8 +1,9 @@
 (ns reptile.tongue.views.observer
-  (:require [re-com.core :refer [v-box h-split gap]]
-            [reptile.tongue.views.eval :as eval-view]
-            [reptile.tongue.views.other-editor :as other-editor]
-            [reptile.tongue.views.status :as status]))
+  (:require
+    [re-com.core :refer [v-box h-split gap]]
+    [reptile.tongue.views.eval :as eval-view]
+    [reptile.tongue.views.other-editor :as other-editor]
+    [reptile.tongue.views.status :as status]))
 
 (defn observer-panels
   [user-name annotated-editors]

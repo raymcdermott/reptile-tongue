@@ -1,11 +1,12 @@
 (ns reptile.tongue.views.visual-history
-  (:require [re-frame.core :as re-frame]
-            [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
-                                 md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
-                                 radio-button p]]
-            [re-com.splits :refer [hv-split-args-desc]]
-            [reptile.tongue.events :as events]
-            [reptile.tongue.subs :as subs]))
+  (:require
+    [re-frame.core :as re-frame]
+    [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
+                         md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
+                         radio-button p]]
+    [re-com.splits :refer [hv-split-args-desc]]
+    [reptile.tongue.events :as events]
+    [reptile.tongue.subs :as subs]))
 
 (def label-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                   :font-size   "11px"

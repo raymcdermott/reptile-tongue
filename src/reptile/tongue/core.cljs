@@ -1,8 +1,9 @@
 (ns reptile.tongue.core
-  (:require [reagent.core :as reagent]
-            [re-frame.core :as re-frame]
-            [reptile.tongue.events :as events]
-            [reptile.tongue.main-view :as main-view]))
+  (:require
+    [reagent.core :as reagent]
+    [re-frame.core :as re-frame]
+    [reptile.tongue.events :as events]
+    [reptile.tongue.main-view :as main-view]))
 
 
 (defn mount-root []
