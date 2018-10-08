@@ -74,15 +74,6 @@
   (fn [_ _]
     db/default-db))
 
-;; Reflect changes on other editor's code-mirror
-(reg-event-fx
-  ::update-forms
-  (fn [{:keys [db]} [_ update]]
-    (let [editors      (:annotated-editors db)
-          other-editor (first (filter #(= (:name %) (:user update)) editors))
-          code-mirror  (:code-mirror other-editor)]
-      (.setValue code-mirror (:form update)))))
-
 (defn styled-editor
   [editor color]
   (let [editor-name (:name editor)]
@@ -100,7 +91,9 @@
   [editor]
   (let [editor-name    (name (first editor))
         properties     (second editor)
-        default-editor {:name editor-name :visibility false}]
+        default-editor {:name       editor-name
+                        :visibility false
+                        :active     false}]
     (merge properties default-editor)))
 
 (reg-event-db
@@ -108,7 +101,6 @@
   (fn [db [_ editors]]
     (let [annotated-editors (map editor-properties editors)
           styled-editors    (styled-editors annotated-editors)]
-      (println "::editors styled-editors" styled-editors)
       (assoc db :annotated-editors styled-editors))))
 
 ;; Text
@@ -315,11 +307,11 @@
        ::send-repl-eval [:system (str use-ns "\n" lib-spec)]})))
 
 (defn set-editor-property
-  [db editor set-property-fn]
+  [db editor-name set-property-fn]
   (let [editors        (:annotated-editors db)
-        other-editor   (first (filter #(= (:name %) editor) editors))
+        other-editor   (first (filter #(= (:name %) editor-name) editors))
         updated-editor (set-property-fn other-editor)
-        rest-editors   (filter #(not (= (:name %) editor)) editors)]
+        rest-editors   (filter #(not (= (:name %) editor-name)) editors)]
     (assoc db :annotated-editors (conj rest-editors updated-editor))))
 
 (reg-event-db
@@ -333,4 +325,20 @@
   (fn [db [_ editor]]
     (let [update-fn #(assoc % :visibility (false? (:visibility %)))]
       (set-editor-property db editor update-fn))))
+
+(reg-fx
+  ::update-editor-code-mirror
+  (fn [[code-mirror update]]
+    (.setValue code-mirror update)))
+
+;; Reflect changes on other editor's code-mirror
+(reg-event-fx
+  ::update-forms
+  (fn [{:keys [db]} [_ update]]
+    (let [editors     (:annotated-editors db)
+          editor      (first (filter #(= (:name %) (:user update)) editors))
+          code-mirror (:code-mirror editor)
+          update-fn   #(assoc % :active true)]
+      {:db                         (set-editor-property db (:name editor) update-fn)
+       ::update-editor-code-mirror [code-mirror (:form update)]})))
 

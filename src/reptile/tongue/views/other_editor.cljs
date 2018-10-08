@@ -31,7 +31,7 @@
   [md-icon-button
    :tooltip (:name editor)
    :md-icon-name "zmdi-keyboard"
-   :style (:style editor)
+   :style (if (:active editor) (:style editor) {:color "lightsgray"})
    :on-click #(re-frame/dispatch [::events/visibility-toggle
                                   (:editor editor)])])
 
