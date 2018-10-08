@@ -83,6 +83,19 @@
           code-mirror  (:code-mirror other-editor)]
       (.setValue code-mirror (:form update)))))
 
+(defn styled-editor
+  [editor color]
+  (let [editor-name (:name editor)]
+    (merge editor {:editor editor-name
+                   :abbr   (subs editor-name 0 (min (count editor) 2))
+                   :style  {:color color}})))
+
+; TODO - many colours
+(defn styled-editors
+  [editors]
+  (let [editor-colors ["red" "blue" "green" "orange" "gray"]]
+    (sort-by :name (map #(styled-editor %1 %2) editors editor-colors))))
+
 (defn editor-properties
   [editor]
   (let [editor-name    (name (first editor))
@@ -93,8 +106,10 @@
 (reg-event-db
   ::editors
   (fn [db [_ editors]]
-    (let [annotated-editors (map editor-properties editors)]
-      (assoc db :annotated-editors annotated-editors))))
+    (let [annotated-editors (map editor-properties editors)
+          styled-editors    (styled-editors annotated-editors)]
+      (println "::editors styled-editors" styled-editors)
+      (assoc db :annotated-editors styled-editors))))
 
 ;; Text
 (reg-fx
@@ -305,7 +320,6 @@
         other-editor   (first (filter #(= (:name %) editor) editors))
         updated-editor (set-property-fn other-editor)
         rest-editors   (filter #(not (= (:name %) editor)) editors)]
-    (println "set-editor-property" updated-editor)
     (assoc db :annotated-editors (conj rest-editors updated-editor))))
 
 (reg-event-db

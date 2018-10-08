@@ -29,12 +29,13 @@
 (defn panel-controls
   [editor]
   [v-box :align :center :justify :center
-   :children [[md-icon-button
-               :tooltip (:name editor)
-               :md-icon-name "zmdi-account-circle"
-               :style (:style editor)
-               :on-click #(re-frame/dispatch [::events/visibility-toggle
-                                              (:editor editor)])]]])
+   :children
+   [[md-icon-button
+     :tooltip (:name editor)
+     :md-icon-name "zmdi-account-circle"
+     :style (:style editor)
+     :on-click #(re-frame/dispatch [::events/visibility-toggle
+                                    (:editor editor)])]]])
 
 (defn min-panel
   [editor]
@@ -54,35 +55,21 @@
    :children
    [[panel-controls editor]
     [v-box :size "auto" :style eval-view/eval-panel-style
-     :children [[other-component (:editor editor)]]]]])
-
-(defn styled-editor
-  [editor color]
-  (let [editor-name (:name editor)]
-    (merge editor {:editor editor-name
-                   :abbr   (subs editor-name 0 (min (count editor) 2))
-                   :style  {:color color}})))
-
-; TODO - many colours
-(defn styled-editors
-  [editors]
-  (let [editor-colors ["red" "blue" "green" "orange" "gray"]]
-    (sort-by :name (map #(styled-editor %1 %2) editors editor-colors))))
+     :children
+     [[other-component (:editor editor)]]]]])
 
 (def other-editors-style {:padding "10px 0px 0px 20px"})
 
-; TODO organise editors into a DB list and include the code-mirror
 (defn other-editors
   [editors]
-  (let [styled (styled-editors editors)]
-    [h-box :height "25px" :style other-editors-style
-     :children
-     (vec (map #(min-panel %) styled))]))
+  [h-box :height "25px" :style other-editors-style
+   :children
+   (vec (map #(min-panel %) (sort-by :name editors)))])
 
 (defn other-panels
   [editors]
-  (let [styled          (styled-editors editors)
-        visible-editors (sort-by :name (filter #(true? (:visibility %)) styled))]
+  (let [visible-editors (sort-by :name (filter #(true? (:visibility %))
+                                               editors))]
     [v-box :size "auto"
      :children
      (vec (map #(other-panel %) visible-editors))]))
