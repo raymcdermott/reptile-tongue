@@ -94,7 +94,7 @@
   ::editors
   (fn [db [_ editors]]
     (let [annotated-editors (map editor-properties editors)]
-      (assoc db :editors editors :annotated-editors annotated-editors))))
+      (assoc db :annotated-editors annotated-editors))))
 
 ;; Text
 (reg-fx
@@ -226,15 +226,6 @@
   (fn [db [_ code-mirror]]
     (assoc db :editor-code-mirror code-mirror)))
 
-(reg-event-db
-  ::set-other-editor-code-mirror
-  (fn [db [_ code-mirror editor]]
-    (let [editors            (:annotated-editors db)
-          other-editor       (first (filter #(= (:name %) editor) editors))
-          code-mirror-editor (assoc other-editor :code-mirror code-mirror)
-          rest-editors       (filter #(not (= (:name %) editor)) editors)]
-      (assoc db :annotated-editors (conj rest-editors code-mirror-editor)))))
-
 (reg-fx
   ::send-repl-eval
   (fn [[source form]]
@@ -308,13 +299,24 @@
       {:db              (assoc (:db cofx) :proposed-lib lib)
        ::send-repl-eval [:system (str use-ns "\n" lib-spec)]})))
 
+(defn set-editor-property
+  [db editor set-property-fn]
+  (let [editors        (:annotated-editors db)
+        other-editor   (first (filter #(= (:name %) editor) editors))
+        updated-editor (set-property-fn other-editor)
+        rest-editors   (filter #(not (= (:name %) editor)) editors)]
+    (println "set-editor-property" updated-editor)
+    (assoc db :annotated-editors (conj rest-editors updated-editor))))
+
+(reg-event-db
+  ::set-other-editor-code-mirror
+  (fn [db [_ code-mirror editor]]
+    (let [update-fn #(assoc % :code-mirror code-mirror)]
+      (set-editor-property db editor update-fn))))
+
 (reg-event-db
   ::visibility-toggle
   (fn [db [_ editor]]
-    (let [editors       (:annotated-editors db)
-          toggle-editor (first (filter #(= (:name %) editor) editors))
-          other-editors (filter #(not (= (:name %) editor)) editors)
-          visibility    (:visibility toggle-editor)
-          toggled       (assoc toggle-editor :visibility (false? visibility))]
-      (assoc db :annotated-editors (conj other-editors toggled)))))
+    (let [update-fn #(assoc % :visibility (false? (:visibility %)))]
+      (set-editor-property db editor update-fn))))
 

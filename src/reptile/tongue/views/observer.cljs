@@ -6,14 +6,14 @@
     [reptile.tongue.views.status :as status]))
 
 (defn observer-panels
-  [user-name annotated-editors]
+  [user-name editors]
   [v-box :style {:position "absolute"
                  :top      "18px"
                  :bottom   "0px"
                  :width    "100%"}
    :children
    [[h-split :splitter-size "2px" :initial-split "45%"
-     :panel-1 [other-editor/other-panels annotated-editors]
-     :panel-2 [eval-view/eval-panel "Guest"]]
+     :panel-1 [other-editor/other-panels editors]
+     :panel-2 [eval-view/eval-panel "Observer"]]
     [gap :size "10px"]
     [status/status-bar user-name]]])
