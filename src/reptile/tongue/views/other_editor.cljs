@@ -1,12 +1,15 @@
 (ns reptile.tongue.views.other-editor
   (:require
     [re-frame.core :as re-frame]
-    [re-com.core :refer [h-box v-box gap label md-icon-button]]
+    [re-com.core :refer [h-box v-box gap label md-icon-button slider]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
+    [reptile.tongue.subs :as subs]
     [reptile.tongue.events :as events]
     [reptile.tongue.code-mirror :as code-mirror]
     [reptile.tongue.views.eval :as eval-view]))
+
+(def other-editors-style {:padding "20px 20px 20px 20px"})
 
 (defn other-editor-did-mount
   [editor]
@@ -28,12 +31,20 @@
 
 (defn editor-activity
   [editor]
-  [md-icon-button
-   :tooltip (:name editor)
-   :md-icon-name "zmdi-keyboard"
-   :style (if (:active editor) (:style editor) {:color "lightsgray"})
-   :on-click #(re-frame/dispatch [::events/visibility-toggle
-                                  (:editor editor)])])
+  (let [now                 (js/Date.now)
+        last-active         (:last-active editor)
+        active              (:active editor)
+        inactivity-duration (quot (- now last-active) 1000)]
+    [md-icon-button
+     :tooltip (if active
+                "Actively Coding"
+                (if (> inactivity-duration 10)
+                  (str "Last coding " inactivity-duration " seconds ago")
+                  "Inactive"))
+     :md-icon-name "zmdi-keyboard"
+     :style (if active (:style editor) {:color "lightgray"})
+     :on-click #(re-frame/dispatch [::events/visibility-toggle
+                                    (:editor editor)])]))
 
 (defn editor-icon
   [editor]
@@ -53,25 +64,44 @@
 
 (defn other-panel
   [editor]
-  [h-box :size "100px"
+  [h-box :size "auto"
    :children
    [[editor-icon editor]
     [v-box :size "auto" :style eval-view/eval-panel-style
      :children
      [[other-component (:editor editor)]]]]])
 
-(def other-editors-style {:padding "10px 0px 0px 20px"})
-
-(defn other-editors
+(defn visibility-slider
   [editors]
-  [h-box :height "25px" :style other-editors-style
+  (let [visible-editor-count @(re-frame/subscribe [::subs/visible-editor-count])
+        slider-val           (reagent/atom (str (or visible-editor-count
+                                                    (count editors))))]
+    (fn
+      []
+      [v-box
+       :children
+       [[label :label (str "Max Visible Editors " @slider-val)]
+        [slider
+         :model slider-val
+         :max (str (count editors))
+         :width "150px"
+         :on-change (fn
+                      [new-val]
+                      (reset! slider-val (str new-val))
+                      (re-frame/dispatch [::events/visible-editor-count new-val]))]]])))
+
+(defn other-editor-row
+  [editors]
+  [h-box :size "auto" :align :center
    :children
    (vec (map #(min-panel %) (sort-by :name editors)))])
 
+
 (defn other-panels
   [editors]
-  (let [visible-editors (sort-by :name (filter #(true? (:visibility %))
-                                               editors))]
+  (let [visible-editors (->> editors
+                             (filter #(true? (:visibility %)))
+                             (sort-by :name))]
     [v-box :size "auto"
      :children
      (vec (map #(other-panel %) visible-editors))]))

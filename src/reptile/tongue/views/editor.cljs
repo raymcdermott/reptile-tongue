@@ -3,7 +3,7 @@
     [re-frame.core :as re-frame]
     [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
                          md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
-                         radio-button p]]
+                         radio-button p slider]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
     [reptile.tongue.code-mirror :as code-mirror]
@@ -171,6 +171,25 @@
                :backdrop-opacity 0.7
                :child [add-lib-form lib-data add-lib-event]])]]]]))))
 
+(defn editors-panel
+  [user-name editors]
+  (let [visible (filter #(true? (:visibility %)) editors)]
+    (if (empty? visible)
+      [v-box :size "auto"
+       :children
+       [[edit-panel user-name]]]
+      [v-box :size "auto"
+       :children
+       [[other-editor/other-panels editors]
+        [edit-panel user-name]]])))
+
+(defn other-editor-row
+  [editors]
+  [h-box :size "auto" :align :center
+   :children
+   (vec (map #(other-editor/min-panel %) (sort-by :name editors)))])
+
+
 (defn main-panels
   [user-name editors]
   [v-box :style {:position "absolute"
@@ -178,13 +197,14 @@
                  :bottom   "0px"
                  :width    "100%"}
    :children
-   [[other-editor/other-editors editors]
-    [h-split :splitter-size "2px" :initial-split "45%"
-     :panel-1 (if (empty? editors)
-                [edit-panel user-name]
-                [v-split :splitter-size "2px" :initial-split "25%"
-                 :panel-1 [other-editor/other-panels editors]
-                 :panel-2 [edit-panel user-name]])
+   [(when-not (empty? editors)
+      [h-box :align :center :height "25px"
+       :style other-editor/other-editors-style
+       :children
+       [[other-editor/visibility-slider editors]
+        [other-editor-row editors]]])
+    [h-split :splitter-size "2px"
+     :panel-1 [editors-panel user-name editors]
      :panel-2 [eval-view/eval-panel user-name]]
     [gap :size "10px"]
     [visual-history/history]

@@ -47,11 +47,38 @@
   (fn [db]
     (:user-name db)))
 
+(defn other-editors
+  [editors current-editor]
+  (filter #(not (= (:name %) current-editor)) editors))
+
+(defn search-editors
+  [editors current-editor]
+  (filter #(not (= (:name %) current-editor)) editors))
+
+(re-frame/reg-sub
+  ::visible-editor-count
+  (fn [db]
+    (:visible-editor-count db)))
+
+(re-frame/reg-sub
+  ::visible-editors
+  (fn [db [_ current-editor]]
+    (let [editors       (:annotated-editors db)
+          other-editors (other-editors editors current-editor)]
+      (filter #(true? (:visibility %)) other-editors))))
+
+(re-frame/reg-sub
+  ::active-editors
+  (fn [db [_ current-editor]]
+    (let [editors       (:annotated-editors db)
+          other-editors (other-editors editors current-editor)]
+      (filter #(true? (:active %)) other-editors))))
+
 (re-frame/reg-sub
   ::other-editors
   (fn [db [_ current-editor]]
     (let [editors (:annotated-editors db)]
-      (filter #(not (= (:name %) current-editor)) editors))))
+      (other-editors editors current-editor))))
 
 (re-frame/reg-sub
   ::observer

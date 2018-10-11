@@ -1,5 +1,6 @@
 (ns reptile.tongue.events
   (:require
+    goog.date.Date
     [cljs.core.specs.alpha]
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
     [reptile.tongue.config :as config]
@@ -91,9 +92,10 @@
   [editor]
   (let [editor-name    (name (first editor))
         properties     (second editor)
-        default-editor {:name       editor-name
-                        :visibility false
-                        :active     false}]
+        default-editor {:name        editor-name
+                        :visibility  true
+                        :active      false
+                        :last-active (js/Date.now)}]
     (merge properties default-editor)))
 
 (reg-event-db
@@ -326,6 +328,29 @@
     (let [update-fn #(assoc % :visibility (false? (:visibility %)))]
       (set-editor-property db editor update-fn))))
 
+(reg-event-db
+  ::visible-editor-count
+  (fn [db [_ editor-count]]
+    ; TODO do the changes to visibility on some editors here
+    (assoc db :visible-editor-count editor-count)))
+
+(defn check-active
+  [editor inactivity-ms since]
+  (let [inactivity-period (- since (:last-active editor))]
+    (if (> inactivity-ms inactivity-period)
+      (assoc editor :active true)
+      (assoc editor :active false))))
+
+(reg-event-db
+  ::idle-check
+  (fn [db [_ editor]]
+    (let [inactivity-ms (:inactivity-ms db)
+          editors       (:annotated-editors db)
+          check-list    (filter #(not (= (:name %) editor)) editors)
+          now           (js/Date.now)]
+      (assoc db :annotated-editors (map #(check-active % inactivity-ms now)
+                                        check-list)))))
+
 (reg-fx
   ::update-editor-code-mirror
   (fn [[code-mirror update]]
@@ -338,7 +363,7 @@
     (let [editors     (:annotated-editors db)
           editor      (first (filter #(= (:name %) (:user update)) editors))
           code-mirror (:code-mirror editor)
-          update-fn   #(assoc % :active true)]
+          update-fn   #(assoc % :active true :last-active (js/Date.now))]
+      (re-frame/dispatch [::idle-check editor])
       {:db                         (set-editor-property db (:name editor) update-fn)
        ::update-editor-code-mirror [code-mirror (:form update)]})))
-
