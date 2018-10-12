@@ -104,16 +104,15 @@
   ::editors
   (fn [db [_ editors]]
     (let [annotated-editors (map editor-properties editors)
-          styled-editors    (styled-editors annotated-editors)
-          new-editor        (assoc (last styled-editors)
-                              :idle-check-started (js/Date.now))]
+          styled-editors    (styled-editors annotated-editors)]
 
-      ; Establish a recurring check whether the new editor is idle
-      (async/go-loop
-        []
-        (async/<! (async/timeout (* 30 1000)))
-        (re-frame/dispatch [::idle-check new-editor])
-        (recur))
+      (when (= 2 (count styled-editors))
+        ; Establish a recurring check whether the new editor is idle
+        (async/go-loop
+          []
+          (async/<! (async/timeout (* 30 1000)))
+          (re-frame/dispatch [::idle-check (last styled-editors)])
+          (recur)))
 
       (assoc db :annotated-editors styled-editors))))
 
