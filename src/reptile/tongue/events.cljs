@@ -2,7 +2,8 @@
   (:require
     goog.date.Date
     [cljs.core.specs.alpha]
-    [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
+    [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx
+                                        reg-fx]]
     [reptile.tongue.config :as config]
     [reptile.tongue.db :as db]
     [clojure.string :as str]
@@ -11,7 +12,8 @@
     [taoensso.sente :as sente :refer [cb-success?]]
     [taoensso.sente.packers.transit :as sente-transit]
     [cljs.reader :as rdr]
-    [taoensso.timbre :as timbre]))
+    [taoensso.timbre :as timbre]
+    [cljs.core.async :as async]))
 
 ;(timbre/set-level! :trace)                                  ; Uncomment for more logging
 
@@ -102,7 +104,17 @@
   ::editors
   (fn [db [_ editors]]
     (let [annotated-editors (map editor-properties editors)
-          styled-editors    (styled-editors annotated-editors)]
+          styled-editors    (styled-editors annotated-editors)
+          new-editor        (assoc (last styled-editors)
+                              :idle-check-started (js/Date.now))]
+
+      ; Establish a recurring check whether the new editor is idle
+      (async/go-loop
+        []
+        (async/<! (async/timeout (* 30 1000)))
+        (re-frame/dispatch [::idle-check new-editor])
+        (recur))
+
       (assoc db :annotated-editors styled-editors))))
 
 ;; Text
@@ -178,18 +190,22 @@
     (cond
       exception?
       (str "=> " exception?
-           "\n" (when-let [fails (pred-fails spec-err)] (str "Failure on: " fails "\n"))
+           "\n" (when-let [fails (pred-fails spec-err)]
+                  (str "Failure on: " fails "\n"))
            "\n")
 
       (= tag :out)
       val
 
       (= tag :ret)
-      (str (when show-times? (str ms " ms ")) "=> " (format-nil-vals val) "\n"))))
+      (str (when show-times? (str ms " ms "))
+           "=> " (format-nil-vals val) "\n"))))
 
 (defn format-responses
   [show-times? {:keys [form prepl-response]}]
-  (str form "\n" (doall (apply str (map (partial format-response show-times?) prepl-response)))))
+  (str form "\n" (doall (apply str (map
+                                     (partial format-response show-times?)
+                                     prepl-response)))))
 
 (defn format-results
   [show-times? results]
@@ -209,7 +225,8 @@
     (let [code-mirror  (:eval-code-mirror db)
           show-times?  (true? (:show-times db))
           eval-results (cons eval-result (:eval-results db))
-          str-results  (apply str (reverse (format-results show-times? eval-results)))]
+          str-results  (apply str (reverse (format-results show-times?
+                                                           eval-results)))]
       {:db                     (assoc db :eval-results eval-results)
        ::set-code-mirror-value {:new-value   str-results
                                 :code-mirror code-mirror}})))
@@ -220,7 +237,8 @@
     (let [code-mirror  (:eval-code-mirror db)
           show-times?  (true? show-times)
           eval-results (:eval-results db)
-          str-results  (apply str (reverse (format-results show-times? eval-results)))]
+          str-results  (apply str (reverse (format-results show-times?
+                                                           eval-results)))]
       {:db                     (assoc db :show-times show-times)
        ::set-code-mirror-value {:new-value   str-results
                                 :code-mirror code-mirror}})))
@@ -361,9 +379,12 @@
   ::update-forms
   (fn [{:keys [db]} [_ update]]
     (let [editors     (:annotated-editors db)
-          editor      (first (filter #(= (:name %) (:user update)) editors))
+          editor      (first (filter #(= (:name %) (:user update))
+                                     editors))
           code-mirror (:code-mirror editor)
           update-fn   #(assoc % :active true :last-active (js/Date.now))]
       (re-frame/dispatch [::idle-check editor])
-      {:db                         (set-editor-property db (:name editor) update-fn)
+      {:db                         (set-editor-property db (:name editor)
+                                                        update-fn)
        ::update-editor-code-mirror [code-mirror (:form update)]})))
+
