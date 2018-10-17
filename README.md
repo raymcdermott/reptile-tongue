@@ -1,24 +1,36 @@
 # reptile-tongue
 
-A [re-frame](https://github.com/Day8/re-frame) based SPA for the REPtiLE shared REPL
+A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared REPL](https://github.com/raymcdermott/reptile-tail)
 
 ## Features
 
-- [X] Multi-user REPL
-- [X] Real-time keystrokes from all connected users
-- [X] Shared, accessible history
+### REPtiLe connectivity
+- [X] Multi-user REPL connectivity
 - [X] Authenticated server access
-- [X] Colorised edits / output
-- [X] Parinfer integration
-- [X] Show matching / balancing parens
-- [X] Add a library on demand (Maven & Git SHAs)
-- [ ] Code completion / suggestions 
-- [ ] Expose function docstring documentation
-- [ ] Expandable exception viewing 
+- [X] Real-time keystrokes from all connected users
 - [ ] Per user name spaces
+
+### Other editors
+- [X] Visibility / sizing controls
+- [ ] Automatic visibility / sizing
+
+### Clojure code support
+- [X] Parinfer integration
+- [X] Colorised edits / output
+- [X] Show matching / balancing parens
+- [ ] Code completion / suggestions 
+- [ ] Expose function documentation
+- [ ] Choice of editor key mappings
+
+### Clojure evaluation
+- [X] Shared REPL state
+- [X] Shared, accessible history
+- [ ] Expandable exception viewing 
 - [ ] Incremental feedback on long running REPL evaluations
 - [ ] Cancel long running REPL evaluations
-- [ ] Choice of editor key mappings
+
+### Deps.edn
+- [X] Add a library on demand (Maven & Git SHAs)
 
 ## Development
 
@@ -32,7 +44,7 @@ Figwheel will automatically push cljs changes to the browser.
 
 Wait a bit, then browse to [http://localhost:9500](http://localhost:9500).
 
-The REPtiLe server will be started in the background so there is no need to start an additional server in the development process.
+The REPtiLe server will be started in the background so there is no need to start a separate server in the development process.
 
 ## Configuration
 
@@ -40,6 +52,7 @@ The location of the back-end server is configurable.
 
 The name of the server can be set in the `min.cljs.edn` by changing `reptile.tongue.config/TAIL_SERVER`
 
+Please also checkout the [REPtiLE configuration](https://github.com/raymcdermott/reptile-tail) options
 
 ## Production Build
 

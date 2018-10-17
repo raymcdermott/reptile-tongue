@@ -1,13 +1,14 @@
 (ns reptile.tongue.views.eval
-  (:require [re-frame.core :as re-frame]
-            [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
-                                 md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
-                                 radio-button p]]
-            [re-com.splits :refer [hv-split-args-desc]]
-            [reagent.core :as reagent]
-            [reptile.tongue.subs :as subs]
-            [reptile.tongue.events :as events]
-            [reptile.tongue.code-mirror :as code-mirror]))
+  (:require
+    [re-frame.core :as re-frame]
+    [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
+                         md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
+                         radio-button p]]
+    [re-com.splits :refer [hv-split-args-desc]]
+    [reagent.core :as reagent]
+    [reptile.tongue.subs :as subs]
+    [reptile.tongue.events :as events]
+    [reptile.tongue.code-mirror :as code-mirror]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"

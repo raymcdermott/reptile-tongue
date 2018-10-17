@@ -1,17 +1,20 @@
 (ns reptile.tongue.code-mirror
-  (:require [cljsjs.codemirror]
-            [cljsjs.codemirror.mode.clojure]
-            [cljsjs.codemirror.addon.edit.matchbrackets]
-            [cljsjs.parinfer-codemirror]
-            [cljsjs.parinfer]))
-
-;; CodeMirror support
+  "Code mirror support"
+  (:require
+    [re-frame.core :refer [reg-fx]]
+    [cljsjs.codemirror]
+    [cljsjs.codemirror.mode.clojure]
+    [cljsjs.codemirror.addon.edit.matchbrackets]
+    [cljsjs.parinfer-codemirror]
+    [cljsjs.parinfer]))
 
 (defn text-area
   [id]
-  (fn [] [:textarea {:id            id
-                     :auto-complete false
-                     :default-value ""}]))
+  (fn
+    []
+    [:textarea {:id            id
+                :auto-complete false
+                :default-value ""}]))
 
 (defn parinfer
   [dom-node config]
@@ -22,4 +25,19 @@
     (.setSize code-mirror editor-height editor-width)
     (js/parinferCodeMirror.init code-mirror)
     code-mirror))
+
+(defn sync-user-code-mirror!
+  "Update the user's most recent input to their code mirror"
+  [{:keys [code-mirror form]}]
+  (.setValue code-mirror form))
+
+(reg-fx
+  ::sync-code-mirror
+  (fn [user]
+    (sync-user-code-mirror! user)))
+
+(reg-fx
+  ::set-code-mirror-value
+  (fn [{:keys [code-mirror value]}]
+    (.setValue code-mirror value)))
 

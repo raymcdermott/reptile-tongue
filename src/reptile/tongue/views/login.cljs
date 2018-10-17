@@ -1,10 +1,11 @@
 (ns reptile.tongue.views.login
-  (:require [re-frame.core :as re-frame]
-            [re-com.core :refer [v-box button gap border label input-text
-                                  modal-panel title radio-button]]
-            [reagent.core :as reagent]
-            [reptile.tongue.events :as events]
-            [reptile.tongue.subs :as subs]))
+  (:require
+    [reagent.core :as reagent]
+    [re-frame.core :as re-frame]
+    [re-com.core :refer [v-box button gap border label input-text
+                         modal-panel title radio-button]]
+    [reptile.tongue.events :as events]
+    [reptile.tongue.subs :as subs]))
 
 (defn login-form
   [form-data process-ok]

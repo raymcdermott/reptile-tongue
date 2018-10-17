@@ -1,23 +1,22 @@
-{:deps    {org.clojure/clojure {:mvn/version "1.10.0-alpha6"}
+{:deps    {org.clojure/clojure {:mvn/version "1.10.0-beta3"}
            reptile-body        {:git/url "https://github.com/raymcdermott/reptile-body.git"
                                 :sha     "396ee4047f3e93352a1296ca0fb1e3441d856a9f"}}
- :aliases {:fig   {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
-                                 com.bhauman/figwheel-main       {:mvn/version "0.1.8"}
-                                 com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+ :aliases {:fig     {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
+                                   com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
+                                   com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
 
-                                 org.clojure/tools.logging       {:mvn/version "0.4.0"}
-                                 com.taoensso/sente              {:mvn/version "1.12.0"}
-                                 com.taoensso/timbre             {:mvn/version "4.10.0"}
-                                 com.cognitect/transit-cljs      {:mvn/version "0.8.243"}
+                                   org.clojure/tools.logging       {:mvn/version "0.4.0"}
+                                   com.taoensso/sente              {:mvn/version "1.12.0"}
+                                   com.taoensso/timbre             {:mvn/version "4.10.0"}
+                                   com.cognitect/transit-cljs      {:mvn/version "0.8.256"}
 
-                                 com.andrewmcveigh/cljs-time     {:mvn/version "0.5.2"}
+                                   re-frame                        {:mvn/version "0.10.5"}
+                                   re-com                          {:mvn/version "2.2.0-SNAPSHOT"}
 
-                                 re-frame                        {:mvn/version "0.10.5"}
-                                 re-com                          {:mvn/version "2.1.0"}
-
-                                 cljsjs/codemirror               {:mvn/version "5.31.0-0"}
-                                 cljsjs/parinfer-codemirror      {:mvn/version "1.4.1-2"}}
-                   :extra-paths ["resources" "target"]
-                   :main-opts   ["-m" "figwheel.main"]}
-           :build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
+                                   cljsjs/codemirror               {:mvn/version "5.31.0-0"}
+                                   cljsjs/parinfer-codemirror      {:mvn/version "1.4.1-2"}}
+                     :extra-paths ["resources" "target"]
+                     :main-opts   ["-m" "figwheel.main"]}
+           :cursive {:main-opts ["-m" "figwheel.main" "-b" "dev"]}
+           :build   {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
+           :min     {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}

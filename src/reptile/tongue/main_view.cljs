@@ -1,17 +1,15 @@
 (ns reptile.tongue.main-view
-  (:require [re-frame.core :as re-frame]
-            [reptile.tongue.subs :as subs]
-            [reptile.tongue.views.login :as login]
-            [reptile.tongue.views.observer :as observer]
-            [reptile.tongue.views.editor :as editor]))
+  (:require
+    [re-frame.core :refer [subscribe]]
+    [reptile.tongue.events :as events]
+    [reptile.tongue.views.login :as login]
+    [reptile.tongue.views.editor :as editor]))
 
 (defn main-panel
   []
-  (let [observer?     (true? @(re-frame/subscribe [::subs/observer]))
-        user-name     @(re-frame/subscribe [::subs/user-name])
-        other-editors @(re-frame/subscribe [::subs/other-editors user-name])]
-    (if-not user-name
+  (let [logged-in-user        @(subscribe [::events/logged-in-user])
+        network-users         @(subscribe [::events/network-repl-editors])
+        visible-network-users @(subscribe [::events/visible-network-repl-editors])]
+    (if-not logged-in-user
       [login/authenticate]
-      (if observer?
-        [observer/observer-panels user-name other-editors]
-        [editor/main-panels user-name other-editors]))))
+      [editor/main-panels logged-in-user network-users visible-network-users])))

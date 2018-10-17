@@ -1,17 +1,19 @@
 (ns reptile.tongue.views.editor
-  (:require [re-frame.core :as re-frame]
-            [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
-                                 md-icon-button input-textarea modal-panel h-split v-split title flex-child-style
-                                 radio-button p]]
-            [re-com.splits :refer [hv-split-args-desc]]
-            [reagent.core :as reagent]
-            [reptile.tongue.code-mirror :as code-mirror]
-            [reptile.tongue.events :as events]
-            [reptile.tongue.subs :as subs]
-            [reptile.tongue.views.other-editor :as other-editor]
-            [reptile.tongue.views.eval :as eval-view]
-            [reptile.tongue.views.visual-history :as visual-history]
-            [reptile.tongue.views.status :as status]))
+  (:require
+    [re-frame.core :as re-frame]
+    [re-com.core :refer [h-box v-box box button gap line scroller border label
+                         input-text md-circle-icon-button md-icon-button
+                         input-textarea modal-panel h-split v-split title
+                         flex-child-style radio-button p slider]]
+    [re-com.splits :refer [hv-split-args-desc]]
+    [reagent.core :as reagent]
+    [reptile.tongue.code-mirror :as code-mirror]
+    [reptile.tongue.events :as events]
+    [reptile.tongue.subs :as subs]
+    [reptile.tongue.views.other-editor :as other-editor]
+    [reptile.tongue.views.eval :as eval-view]
+    [reptile.tongue.views.visual-history :as visual-history]
+    [reptile.tongue.views.status :as status]))
 
 (def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
@@ -123,7 +125,7 @@
                                      :extraKeys     extra-edit-keys}}
           code-mirror     (code-mirror/parinfer node options)]
       (.on code-mirror "change" #(notify-edits (.getValue %)))
-      (re-frame/dispatch [::events/editor-code-mirror code-mirror]))))
+      (re-frame/dispatch [::events/repl-editor-code-mirror code-mirror]))))
 
 (defn edit-component
   [panel-name]
@@ -147,7 +149,7 @@
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))]
     (fn []
-      (let [current-form @(re-frame/subscribe [::subs/current-form])]
+      (let [local-repl-editor @(re-frame/subscribe [::subs/local-repl-editor])]
         [v-box :size "auto"
          :children
          [[box :size "auto" :style eval-panel-style :child
@@ -157,7 +159,7 @@
            :children
            [[button
              :label "Eval (or Cmd-Enter)"
-             :on-click #(re-frame/dispatch [::events/eval current-form])]
+             :on-click #(re-frame/dispatch [::events/eval local-repl-editor])]
             [gap :size "150px"]
             [md-icon-button
              :md-icon-name "zmdi-library"
@@ -170,19 +172,42 @@
                :backdrop-opacity 0.7
                :child [add-lib-form lib-data add-lib-event]])]]]]))))
 
+(defn network-repl-editors-panel
+  [repl-user network-repl-editors]
+  (if (empty? network-repl-editors)
+    [v-box :size "auto"
+     :children
+     [[edit-panel repl-user]]]
+    [v-box :size "auto"
+     :children
+     [[other-editor/other-panels network-repl-editors]
+      [edit-panel repl-user]]]))
+
+(defn other-editor-row
+  [editors]
+  [h-box :size "auto" :align :center
+   :children
+   (vec (map #(other-editor/min-panel %)
+             (sort-by (comp :name last) editors)))])
+
+
+; TODO - visibility is close but no cigar
+
 (defn main-panels
-  [user-name other-editors]
+  [user-name editors visible-editors]
   [v-box :style {:position "absolute"
-                 :top      "18px"
+                 :top      "0px"
                  :bottom   "0px"
                  :width    "100%"}
    :children
-   [[h-split :splitter-size "2px" :initial-split "45%"
-     :panel-1 (if (empty? other-editors)
-                [edit-panel user-name]
-                [v-split :initial-split "30%"
-                 :panel-1 [other-editor/other-panels other-editors]
-                 :panel-2 [edit-panel user-name]])
+   [(when-not (empty? editors)
+      [h-box :align :center :height "25px"
+       :style other-editor/other-editors-style
+       :children
+       [[other-editor/visibility-slider editors]
+        [other-editor-row editors]]])
+    [h-split :splitter-size "2px"
+     :panel-1 [network-repl-editors-panel user-name visible-editors]
      :panel-2 [eval-view/eval-panel user-name]]
     [gap :size "10px"]
     [visual-history/history]
