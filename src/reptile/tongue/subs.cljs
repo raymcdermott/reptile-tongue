@@ -38,14 +38,14 @@
     (:current-form db)))
 
 (re-frame/reg-sub
+  ::local-repl-editor
+  (fn [db]
+    (:local-repl-editor db)))
+
+(re-frame/reg-sub
   ::logged-in
   (fn [db]
     (:logged-in db)))
-
-(re-frame/reg-sub
-  ::user-name
-  (fn [db]
-    (:user-name db)))
 
 (defn other-editors
   [editors current-editor]
@@ -62,10 +62,8 @@
 
 (re-frame/reg-sub
   ::visible-editors
-  (fn [db [_ current-editor]]
-    (let [editors       (:annotated-editors db)
-          other-editors (other-editors editors current-editor)]
-      (filter #(true? (:visibility %)) other-editors))))
+  (fn [db]
+    (:visible-editors db)))
 
 (re-frame/reg-sub
   ::active-editors

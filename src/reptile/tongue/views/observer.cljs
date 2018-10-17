@@ -6,7 +6,7 @@
     [reptile.tongue.views.status :as status]))
 
 (defn observer-panels
-  [user-name editors]
+  [user-name editors visible-editors]
   [v-box :style {:position "absolute"
                  :top      "18px"
                  :bottom   "0px"

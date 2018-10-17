@@ -12,13 +12,13 @@
 (def other-editors-style {:padding "20px 20px 20px 20px"})
 
 (defn other-editor-did-mount
-  [editor]
+  [[editor-key _]]
   (fn [this]
     (let [node        (reagent/dom-node this)
           options     {:options {:lineWrapping true
                                  :readOnly     true}}
           code-mirror (code-mirror/parinfer node options)]
-      (re-frame/dispatch [::events/set-other-editor-code-mirror code-mirror editor]))))
+      (re-frame/dispatch [::events/network-repl-editor-code-mirror code-mirror editor-key]))))
 
 (defn other-component
   [editor]
@@ -27,13 +27,13 @@
      (other-editor-did-mount editor)
 
      :reagent-render
-     (code-mirror/text-area editor)}))
+     (code-mirror/text-area (first editor))}))
 
 (defn editor-activity
-  [editor]
+  [[editor-key editor-properties]]
   (let [now                 (js/Date.now)
-        last-active         (:last-active editor)
-        active              (:active editor)
+        last-active         (:last-active editor-properties)
+        active              (:active editor-properties)
         inactivity-duration (quot (- now last-active) 1000)]
     [md-icon-button
      :tooltip (if active
@@ -42,18 +42,16 @@
                   (str "Last coding " inactivity-duration " seconds ago")
                   "Inactive"))
      :md-icon-name "zmdi-keyboard"
-     :style (if active (:style editor) {:color "lightgray"})
-     :on-click #(re-frame/dispatch [::events/visibility-toggle
-                                    (:editor editor)])]))
+     :style (if active (:style editor-properties) {:color "lightgray"})
+     :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])]))
 
 (defn editor-icon
-  [editor]
+  [[editor-key editor-properties]]
   [md-icon-button
-   :tooltip (:name editor)
+   :tooltip (:name editor-properties)
    :md-icon-name "zmdi-account-circle"
-   :style (:style editor)
-   :on-click #(re-frame/dispatch [::events/visibility-toggle
-                                  (:editor editor)])])
+   :style (:style editor-properties)
+   :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])])
 
 (defn min-panel
   [editor]
@@ -69,7 +67,7 @@
    [[editor-icon editor]
     [v-box :size "auto" :style eval-view/eval-panel-style
      :children
-     [[other-component (:editor editor)]]]]])
+     [[other-component editor]]]]])
 
 (defn visibility-slider
   [editors]
@@ -90,18 +88,8 @@
                       (reset! slider-val (str new-val))
                       (re-frame/dispatch [::events/visible-editor-count new-val]))]]])))
 
-(defn other-editor-row
-  [editors]
-  [h-box :size "auto" :align :center
-   :children
-   (vec (map #(min-panel %) (sort-by :name editors)))])
-
-
 (defn other-panels
-  [editors]
-  (let [visible-editors (->> editors
-                             (filter #(true? (:visibility %)))
-                             (sort-by :name))]
-    [v-box :size "auto"
-     :children
-     (vec (map #(other-panel %) visible-editors))]))
+  [visible-editors]
+  [v-box :size "auto"
+   :children
+   (vec (map #(other-panel %) visible-editors))])
