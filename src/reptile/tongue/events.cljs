@@ -152,7 +152,7 @@
            "\n")
 
       (= tag :out)
-      (pr-str val)
+      val
 
       (= tag :ret)
       (str (when show-times? (str ms " ms "))
