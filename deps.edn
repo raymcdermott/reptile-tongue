@@ -8,12 +8,10 @@
                                    org.clojure/tools.logging       {:mvn/version "0.4.0"}
                                    com.taoensso/sente              {:mvn/version "1.12.0"}
                                    com.taoensso/timbre             {:mvn/version "4.10.0"}
-                                   com.cognitect/transit-cljs      {:mvn/version "0.8.243"}
-
-                                   com.andrewmcveigh/cljs-time     {:mvn/version "0.5.2"}
+                                   com.cognitect/transit-cljs      {:mvn/version "0.8.256"}
 
                                    re-frame                        {:mvn/version "0.10.5"}
-                                   re-com                          {:mvn/version "2.1.0"}
+                                   re-com                          {:mvn/version "2.2.0-SNAPSHOT"}
 
                                    cljsjs/codemirror               {:mvn/version "5.31.0-0"}
                                    cljsjs/parinfer-codemirror      {:mvn/version "1.4.1-2"}}
