@@ -216,9 +216,10 @@
 
 (reg-event-fx
   ::eval
-  (fn [{:keys [db]} [_ {:keys [form]}]]
-    {:db              (assoc db :form-to-eval form)
-     ::send-repl-eval [:user form]}))
+  (fn [{:keys [db]} [_ input]]
+    (let [form-to-eval (if (string? input) input (:form input))]
+      {:db              (assoc db :form-to-eval form-to-eval)
+       ::send-repl-eval [:user form-to-eval]})))
 
 (reg-fx
   ::server-login
