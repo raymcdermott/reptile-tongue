@@ -8,7 +8,7 @@
     [taoensso.sente :as sente :refer [cb-success?]]
     [taoensso.sente.packers.transit :as sente-transit]
     [taoensso.timbre :as timbre]
-    [cljs.reader :as rdr]
+    [cljs.tools.reader.edn :as rdr]
     [cljs.core.async :as async]
     [clojure.string :as str]
     [reptile.tongue.config :as config]
@@ -108,48 +108,39 @@
   (fn [db [_ status]]
     (assoc db :network-status status)))
 
-(defn read-ex
-  "Read exceptions, patching spec SNAFUs"
-  [exc]
-  (try (some-> exc
-               (clojure.string/replace #"^#error " "")
-               (clojure.string/replace #":spec #object.+ :value" ":value")
-               (rdr/read-string))
-       (catch :default e (do (println "read-ex error:" e "input form" exc)
-                             (str "read-ex error:" e)))))
-
 (defn pred-fails
-  [spec-error]
-  (some->> (get-in spec-error [:data :clojure.spec.alpha/problems])
-           (map :pred)
-           (distinct)
+  [problems]
+  (some->> problems
+           (map #(str (:val %) " is not " (:pred %)))
            (interpose "\n")
            (apply str)))
 
 (defn format-nil-vals
   [val]
-  (if (nil? val) "nil" (pr-str val)))
+  (if (nil? val) "nil" val))
 
-(defn format-return-vals
-  [response]
-  (some->> response
-           (filter #(= :ret (:tag %)))
-           (map :val)
-           (map format-nil-vals)
-           (interpose "\n=> ")
-           (apply str)))
+(defn default-reptile-tag-reader
+  [tag val]
+  {:nk-tag tag :nk-val (rdr/read-string (str val))})
+
+(defn check-exception
+  [val]
+  (when (str/starts-with? val "{:cause")
+    (let [reader-opts {:default default-reptile-tag-reader}
+          {:keys [cause via trace data]} (rdr/read-string reader-opts val)
+          problems    (:clojure.spec.alpha/problems data)
+          spec        (:clojure.spec.alpha/spec data)
+          value       (:clojure.spec.alpha/value data)
+          args        (:clojure.spec.alpha/args data)]
+      (str cause "\n" (pred-fails problems)))))
 
 (defn format-response
   [show-times? result]
-  (let [{:keys [val tag cause ms]} result
-        spec-err   (and (= :err tag) (read-ex val))
-        exception? (or (:cause spec-err) cause)]
+  (let [{:keys [val tag ms]} result
+        exception-data (check-exception val)]
     (cond
-      exception?
-      (str "=> " exception?
-           "\n" (when-let [fails (pred-fails spec-err)]
-                  (str "Failure on: " fails "\n"))
-           "\n")
+      exception-data
+      (str "=> " exception-data "\n")
 
       (= tag :out)
       val
@@ -160,9 +151,8 @@
 
 (defn format-responses
   [show-times? {:keys [form prepl-response]}]
-  (str form "\n" (doall (apply str (map
-                                     (partial format-response show-times?)
-                                     prepl-response)))))
+  (str form "\n" (doall (apply str (map (partial format-response show-times?)
+                                        prepl-response)))))
 
 (defn format-results
   [show-times? results]
