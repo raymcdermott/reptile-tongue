@@ -8,11 +8,11 @@
     [reptile.tongue.events :as events]
     [reptile.tongue.subs :as subs]))
 
-(def label-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
-                  :font-size   "11px"
-                  :color       "grey"})
+(defonce label-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
+                      :font-size   "11px"
+                      :color       "grey"})
 
-(def history-style {:padding "5px 5px 0px 10px"})
+(defonce history-style {:padding "5px 5px 0px 10px"})
 
 (defn format-history-item
   [historical-form]

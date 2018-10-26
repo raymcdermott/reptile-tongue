@@ -2,7 +2,7 @@
   (:require
     goog.date.Date
     [cljs.core.specs.alpha]
-    [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx reg-sub]]
+    [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
     [taoensso.encore :as encore :refer [have have?]]
     [taoensso.timbre :refer [tracef debugf infof warnf errorf]]
     [taoensso.sente :as sente :refer [cb-success?]]
@@ -132,7 +132,7 @@
           spec        (:clojure.spec.alpha/spec data)
           value       (:clojure.spec.alpha/value data)
           args        (:clojure.spec.alpha/args data)]
-      (str cause "\n" (pred-fails problems)))))
+      (str "\uD83D\uDCA3\uD83D\uDCA5 \n" (pred-fails problems)))))
 
 (defn format-response
   [show-times? result]
@@ -314,23 +314,12 @@
   (fn [db [_ user-name]]
     (assoc db :user user-name)))
 
-;; Specific subscription for a new logged-in editor
-(reg-sub
-  ::logged-in-user
-  (fn [db]
-    (:user db)))
-
 (reg-event-db
   ::repl-editor-code-mirror
   (fn [db [_ code-mirror]]
     (let [local-repl-editor   (:local-repl-editor db)
           updated-repl-editor (assoc local-repl-editor :code-mirror code-mirror)]
       (assoc db :local-repl-editor updated-repl-editor))))
-
-(reg-sub
-  ::user-code-mirror
-  (fn [db]
-    (get-in db [:local-repl-editor :code-mirror])))
 
 (reg-event-fx
   ::from-history
@@ -350,12 +339,6 @@
                                            {(keyword user-name)
                                             {:name user-name :editor true}}))))
 
-;; Fallback subscription for any change to any of the network users
-(reg-sub
-  ::network-repl-editors
-  (fn [db]
-    (:network-repl-editors db)))
-
 ;BUG??
 ; (reg-event-db
 ;  ::network-repl-editor
@@ -370,73 +353,36 @@
 ;; ---------------------- Editor visibility
 
 (defn toggle-visibility
-  [[editor-key editor-properties]]
+  [editor-key editor-properties]
   (let [visibility (false? (:visibility editor-properties))]
     {editor-key (assoc editor-properties :visibility visibility)}))
 
-; Changes the visibility to the count requested, sorting by the most recently active
-; TODO test out how this heuristic works in practise
-(reg-event-db
-  ::visible-editor-count
-  (fn [db [_ preferred-count]]
-    (let [network-repl-editors (:network-repl-editors db)
-          visible-editors      (into {} (sort-by (comp :last-active last)
-                                                 (filter (comp true? :visibility last)
-                                                         network-repl-editors)))
-          visible-count        (count visible-editors)
-          hidden-editors       (into {} (sort-by (comp :last-active last)
-                                                 (filter (comp false? :visibility last)
-                                                         network-repl-editors)))
-          updated-editors      (cond
-                                 (> preferred-count visible-count) ; need to increase the visible editors
-                                 (let [diff (- preferred-count visible-count)]
-                                   (merge visible-editors
-                                          (into {} (map toggle-visibility
-                                                        (take diff hidden-editors)))
-                                          (drop diff hidden-editors)))
+#_(defn check-active
+    [editor inactivity-ms since]
+    (let [inactivity-period (- since (:last-active editor))]
+      (if (> inactivity-ms inactivity-period)
+        (assoc editor :active true)
+        (assoc editor :active false))))
 
-                                 (< preferred-count visible-count) ; need to decrease the visible editors
-                                 (let [diff (- visible-count preferred-count)]
-                                   (merge hidden-editors
-                                          (into {} (map toggle-visibility
-                                                        (take diff visible-editors)))
-                                          (drop diff visible-editors)))
-
-                                 :else                      ; no difference
-                                 network-repl-editors)]
-      (assoc db :network-repl-editors updated-editors))))
-
-(defn check-active
-  [editor inactivity-ms since]
-  (let [inactivity-period (- since (:last-active editor))]
-    (if (> inactivity-ms inactivity-period)
-      (assoc editor :active true)
-      (assoc editor :active false))))
-
-(reg-event-db
-  ::idle-check
-  (fn [db [_ editor]]
-    ; TODO - fix up to use network users, pass in ID and dissoc that from the list
-    (let [inactivity-ms (:inactivity-ms db)
-          editors       (:annotated-editors db)
-          check-list    (filter #(not (= (:name %) editor)) editors)
-          now           (js/Date.now)]
-      (assoc db :annotated-editors (map #(check-active % inactivity-ms now) check-list)))))
+#_(reg-event-db
+    ::idle-check
+    (fn [db [_ editor]]
+      ; TODO - fix up to use network users, pass in ID and dissoc that from the list
+      (let [inactivity-ms (:inactivity-ms db)
+            editors       (:annotated-editors db)
+            check-list    (filter #(not (= (:name %) editor)) editors)
+            now           (js/Date.now)]
+        (assoc db :annotated-editors (map #(check-active % inactivity-ms now) check-list)))))
 
 (reg-event-fx
   ::network-user-visibility-toggle
   (fn [{:keys [db]} [_ editor-key]]
     (let [network-repl-editors (:network-repl-editors db)
           network-repl-editor  (get network-repl-editors editor-key)
-          updated-repl-editor  (toggle-visibility [editor-key network-repl-editor])
+          updated-repl-editor  (toggle-visibility editor-key network-repl-editor)
           network-repl-editors (merge network-repl-editors updated-repl-editor)]
       {:db                            (assoc db :network-repl-editors network-repl-editors)
        ::code-mirror/sync-code-mirror (get network-repl-editors editor-key)})))
-
-(reg-sub
-  ::visible-network-repl-editors
-  (fn [db]
-    (into {} (filter (comp true? :visibility last) (:network-repl-editors db)))))
 
 ;; Obtain an updated form from a network user
 (reg-event-fx

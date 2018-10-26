@@ -28,7 +28,7 @@
 
 (defn sync-user-code-mirror!
   "Update the user's most recent input to their code mirror"
-  [{:keys [code-mirror form]}]
+  [{:keys [code-mirror form] :as user}]
   (.setValue code-mirror form))
 
 (reg-fx

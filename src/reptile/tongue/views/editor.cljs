@@ -1,6 +1,6 @@
 (ns reptile.tongue.views.editor
   (:require
-    [re-frame.core :as re-frame]
+    [re-frame.core :as re-frame :refer [subscribe]]
     [re-com.core :refer [h-box v-box box button gap line scroller border label
                          input-text md-circle-icon-button md-icon-button
                          input-textarea modal-panel h-split v-split title
@@ -15,35 +15,17 @@
     [reptile.tongue.views.visual-history :as visual-history]
     [reptile.tongue.views.status :as status]))
 
-(def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
-                    :border      "1px solid lightgray"
-                    :padding     "5px 5px 5px 5px"})
+(defonce default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
+                        :border      "1px solid lightgrey"
+                        :padding     "5px 5px 5px 5px"})
 
-(def eval-panel-style (merge (flex-child-style "1")
-                             default-style))
+(defonce eval-panel-style (merge (flex-child-style "1")
+                                 default-style))
 
-(def history-style {:padding "5px 5px 0px 10px"})
-
-(def status-style (merge (dissoc default-style :border)
-                         {:font-size   "10px"
-                          :font-weight "lighter"
-                          :color       "lightgrey"}))
-
-(defn format-history-item
-  [historical-form]
-  [md-icon-button
-   :md-icon-name "zmdi-comment-text"
-   :tooltip historical-form
-   :on-click #(re-frame/dispatch [::events/from-history historical-form])])
-
-(defn visual-history
-  []
-  (fn []
-    (let [eval-results @(re-frame/subscribe [::subs/eval-results])]
-      (when eval-results
-        [h-box :size "auto" :align :center :style history-style
-         :children (map format-history-item
-                        (distinct (map :form eval-results)))]))))
+(defonce status-style (merge (dissoc default-style :border)
+                             {:font-size   "10px"
+                              :font-weight "lighter"
+                              :color       "lightgrey"}))
 
 (defn lib-type
   [lib-data]
@@ -114,8 +96,8 @@
 
 (defn editor-did-mount
   []
-  (fn [this]
-    (let [node            (reagent/dom-node this)
+  (fn [this-textarea]
+    (let [node            (reagent/dom-node this-textarea)
           extra-edit-keys {:Cmd-Enter #(re-frame/dispatch
                                          [::events/eval (.getValue %)])}
           options         {:options {:lineWrapping  true
@@ -130,86 +112,80 @@
 (defn edit-component
   [panel-name]
   (reagent/create-class
-    {:component-did-mount
-     (editor-did-mount)
-
-     :reagent-render
-     (code-mirror/text-area panel-name)}))
+    {:component-did-mount  (editor-did-mount)
+     :reagent-render       (code-mirror/text-area panel-name)
+     :component-did-update #(-> nil)                        ; noop to prevent reload
+     :display-name         "local-editor"}))
 
 ; TODO: Refactor out the add-lib modal
 (defn edit-panel
-  [panel-name]
+  [local-repl-editor]
   (let [show-add-lib? (reagent/atom false)
         lib-data      (reagent/atom {:name    "clojurewerkz/money"
                                      :version "1.10.0"
                                      :url     "https://github.com/?????"
                                      :sha     "666-???"
                                      :maven   true})
-        add-lib-event (fn []
+        add-lib-event (fn
+                        []
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))]
-    (fn []
-      (let [local-repl-editor @(re-frame/subscribe [::subs/local-repl-editor])]
-        [v-box :size "auto"
+    (fn
+      []
+      [v-box :size "auto"
+       :children
+       [[box :size "auto" :style eval-panel-style :child
+         [edit-component (:name local-repl-editor)]]
+        [gap :size "5px"]
+        [h-box :align :center
          :children
-         [[box :size "auto" :style eval-panel-style :child
-           [edit-component panel-name]]
-          [gap :size "5px"]
-          [h-box :align :center
-           :children
-           [[button
-             :label "Eval (or Cmd-Enter)"
-             :on-click #(re-frame/dispatch [::events/eval local-repl-editor])]
-            [gap :size "150px"]
-            [md-icon-button
-             :md-icon-name "zmdi-library"
-             :tooltip "Add a library"
-             :on-click #(reset! show-add-lib? true)]
-            (when @show-add-lib?
-              [modal-panel
-               :backdrop-color "lightgray"
-               :backdrop-on-click #(reset! show-add-lib? false)
-               :backdrop-opacity 0.7
-               :child [add-lib-form lib-data add-lib-event]])]]]]))))
+         [[button
+           :label "Eval (or Cmd-Enter)"
+           :on-click #(re-frame/dispatch [::events/eval local-repl-editor])]
+          [gap :size "150px"]
+          [md-icon-button
+           :md-icon-name "zmdi-library"
+           :tooltip "Add a library"
+           :on-click #(reset! show-add-lib? true)]
+          (when @show-add-lib?
+            [modal-panel
+             :backdrop-color "lightgray"
+             :backdrop-on-click #(reset! show-add-lib? false)
+             :backdrop-opacity 0.7
+             :child [add-lib-form lib-data add-lib-event]])]]]])))
 
-(defn network-repl-editors-panel
-  [repl-user network-repl-editors]
-  (if (empty? network-repl-editors)
-    [v-box :size "auto"
-     :children
-     [[edit-panel repl-user]]]
-    [v-box :size "auto"
-     :children
-     [[other-editor/other-panels network-repl-editors]
-      [edit-panel repl-user]]]))
+(defn editors-panel
+  [local-repl-editor network-repl-editors]
+  [v-box :size "auto"
+   :children
+   [(when (not (empty? network-repl-editors))
+      [other-editor/other-panels network-repl-editors])
+    [edit-panel local-repl-editor]]])
+
 
 (defn other-editor-row
-  [editors]
+  [network-repl-editors]
   [h-box :size "auto" :align :center
    :children
-   (vec (map #(other-editor/min-panel %)
-             (sort-by (comp :name last) editors)))])
-
-
-; TODO - visibility is close but no cigar
+   (vec (map other-editor/min-panel network-repl-editors))])
 
 (defn main-panels
-  [user-name editors visible-editors]
-  [v-box :style {:position "absolute"
-                 :top      "0px"
-                 :bottom   "0px"
-                 :width    "100%"}
-   :children
-   [(when-not (empty? editors)
-      [h-box :align :center :height "25px"
-       :style other-editor/other-editors-style
+  [user-name]
+  (let [network-repl-editors (subscribe [::subs/network-repl-editors])
+        local-repl-editor    (subscribe [::subs/local-repl-editor])]
+    (fn
+      []
+      [v-box :style {:position "absolute"
+                     :top      "0px"
+                     :bottom   "0px"
+                     :width    "100%"}
        :children
-       [[other-editor/visibility-slider editors]
-        [other-editor-row editors]]])
-    [h-split :splitter-size "2px"
-     :panel-1 [network-repl-editors-panel user-name visible-editors]
-     :panel-2 [eval-view/eval-panel user-name]]
-    [gap :size "10px"]
-    [visual-history/history]
-    [gap :size "10px"]
-    [status/status-bar user-name]]])
+       [[h-box :align :center :height "25px" :style other-editor/other-editors-style
+         :children [[other-editor-row @network-repl-editors]]]
+        [h-split :splitter-size "2px"
+         :panel-1 [editors-panel @local-repl-editor @network-repl-editors]
+         :panel-2 [eval-view/eval-panel user-name]]
+        [gap :size "10px"]
+        [visual-history/history]
+        [gap :size "10px"]
+        [status/status-bar user-name]]])))

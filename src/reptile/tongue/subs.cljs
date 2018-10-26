@@ -1,91 +1,86 @@
 (ns reptile.tongue.subs
   (:require
-    [re-frame.core :as re-frame]))
+    [re-frame.core :refer [reg-sub]]))
 
-(re-frame/reg-sub
+(reg-sub
   ::user-keystrokes
   (fn [db [_ user]]
     (get-in db [:current-forms user])))
 
-(re-frame/reg-sub
+(reg-sub
   ::form-from-history
   (fn [db]
     (:form-from-history db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::eval-results
   (fn [db]
     (:eval-results db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::show-times
   (fn [db]
     (:show-times db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::network-status
   (fn [db]
     (:network-status db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::name
   (fn [db]
     (:name db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::current-form
   (fn [db]
     (:current-form db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::local-repl-editor
   (fn [db]
     (:local-repl-editor db)))
 
-(re-frame/reg-sub
+(reg-sub
   ::logged-in
   (fn [db]
     (:logged-in db)))
 
-(defn other-editors
-  [editors current-editor]
-  (filter #(not (= (:name %) current-editor)) editors))
-
-(defn search-editors
-  [editors current-editor]
-  (filter #(not (= (:name %) current-editor)) editors))
-
-(re-frame/reg-sub
-  ::visible-editor-count
-  (fn [db]
-    (:visible-editor-count db)))
-
-(re-frame/reg-sub
-  ::visible-editors
-  (fn [db]
-    (:visible-editors db)))
-
-(re-frame/reg-sub
-  ::active-editors
-  (fn [db [_ current-editor]]
-    (let [editors       (:annotated-editors db)
-          other-editors (other-editors editors current-editor)]
-      (filter #(true? (:active %)) other-editors))))
-
-(re-frame/reg-sub
-  ::other-editors
-  (fn [db [_ current-editor]]
-    (let [editors (:annotated-editors db)]
-      (other-editors editors current-editor))))
-
-(re-frame/reg-sub
+(reg-sub
   ::observer
   (fn [db]
     (= "true" (:observer db))))
 
-(re-frame/reg-sub
+(reg-sub
   ::observers
   (fn [db]
     (let [editors (:annotated-editors db)]
       (filter #(= "true" (:observer %)) editors))))
+
+(reg-sub
+  ::logged-in-user
+  (fn [db]
+    (:user db)))
+
+(reg-sub
+  ::user-code-mirror
+  (fn [db]
+    (get-in db [:local-repl-editor :code-mirror])))
+
+(reg-sub
+  ::network-repl-editor
+  (fn [db [_ editor-key]]
+    (get-in db [:network-repl-editors editor-key])))
+
+(reg-sub
+  ::network-repl-editors
+  (fn [db]
+    (:network-repl-editors db)))
+
+(reg-sub
+  ::network-repl-editor-keys
+  (fn [db]
+    (keys (:network-repl-editors db))))
+
 
