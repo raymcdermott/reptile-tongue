@@ -4,7 +4,7 @@
 ; -- see min.cljs.edn as an example
 
 (goog-define TAIL_SERVER "reptile.extemporay.io")
-(goog-define TAIL_SERVER_PORT "8888")
+(goog-define TAIL_SERVER_PORT "58885")
 
 (defonce debug? ^boolean goog.DEBUG)
 

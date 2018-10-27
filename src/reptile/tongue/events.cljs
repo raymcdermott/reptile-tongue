@@ -111,7 +111,7 @@
 (defn pred-fails
   [problems]
   (some->> problems
-           (map #(str (:val %) " is not " (:pred %)))
+           (map #(str "🤔  " (:val %) " is not " (:pred %)))
            (interpose "\n")
            (apply str)))
 
@@ -132,7 +132,7 @@
           spec        (:clojure.spec.alpha/spec data)
           value       (:clojure.spec.alpha/value data)
           args        (:clojure.spec.alpha/args data)]
-      (str "\uD83D\uDCA3\uD83D\uDCA5 \n" (pred-fails problems)))))
+      (str "🤕 \uD83D\uDC94️\n" (pred-fails problems)))))
 
 (defn format-response
   [show-times? result]
@@ -149,10 +149,19 @@
       (str (when show-times? (str ms " ms "))
            "=> " (format-nil-vals val) "\n"))))
 
+;; Demo of live changes
+;(defn format-responses
+;  [show-times? {:keys [form prepl-response live-repl]}]
+;  (str "POSTED Since Live? " (false? (nil? live-repl)) "\n"
+;       form "\n"
+;       (doall (apply str (map (partial format-response show-times?)
+;                              prepl-response)))))
+
 (defn format-responses
   [show-times? {:keys [form prepl-response]}]
-  (str form "\n" (doall (apply str (map (partial format-response show-times?)
-                                        prepl-response)))))
+  (str form "\n"
+       (doall (apply str (map (partial format-response show-times?)
+                              prepl-response)))))
 
 (defn format-results
   [show-times? results]
