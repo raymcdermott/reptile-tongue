@@ -3,8 +3,12 @@
     [reagent.core :as reagent]
     [re-frame.core :as re-frame]
     [reptile.tongue.events :as events]
-    [reptile.tongue.main-view :as main-view]))
+    [reptile.tongue.main-view :as main-view]
+    [reptile.tongue.config :as config]))
 
+(defn dev-setup []
+  (when config/debug?
+    (enable-console-print!)))
 
 (defn mount-root []
   (re-frame/clear-subscription-cache!)
@@ -13,4 +17,5 @@
 
 (defn ^:export init []
   (re-frame/dispatch-sync [::events/initialize-db])
+  (dev-setup)
   (mount-root))

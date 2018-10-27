@@ -1,6 +1,6 @@
 (ns reptile.tongue.views.other-editor
   (:require
-    [re-frame.core :as re-frame]
+    [re-frame.core :as re-frame :refer [subscribe]]
     [re-com.core :refer [h-box v-box gap label md-icon-button slider]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
@@ -9,31 +9,37 @@
     [reptile.tongue.code-mirror :as code-mirror]
     [reptile.tongue.views.eval :as eval-view]))
 
-(def other-editors-style {:padding "20px 20px 20px 20px"})
+(defonce other-editors-style {:padding "20px 20px 20px 20px"})
 
 (defn other-editor-did-mount
-  [[editor-key _]]
+  [editor]
   (fn [this]
     (let [node        (reagent/dom-node this)
           options     {:options {:lineWrapping true
                                  :readOnly     true}}
-          code-mirror (code-mirror/parinfer node options)]
+          code-mirror (code-mirror/parinfer node options)
+          editor-key  (keyword (:name editor))]
       (re-frame/dispatch [::events/network-repl-editor-code-mirror code-mirror editor-key]))))
 
+;; TODO visibility toggle ... we never get here cos react
 (defn other-component
-  [editor]
-  (reagent/create-class
-    {:component-did-mount
-     (other-editor-did-mount editor)
+  [network-repl-editor]
+  (let [editor-name (:name network-repl-editor)]
+    (reagent/create-class
+      {:component-did-mount  (other-editor-did-mount network-repl-editor)
+       :reagent-render       (code-mirror/text-area editor-name)
+       :component-did-update #(-> nil)                      ; noop to prevent reload
+       :display-name         (str "network-editor-" editor-name)})))
 
-     :reagent-render
-     (code-mirror/text-area (first editor))}))
+; 1 - use the outer / inner pattern
+; 2 - use the visible invisible property on each editor icon
+; 3 - outer component to subscribe on the given editor and check the visibility
 
 (defn editor-activity
-  [[editor-key editor-properties]]
-  (let [now                 (js/Date.now)
-        last-active         (:last-active editor-properties)
-        active              (:active editor-properties)
+  [editor-key network-repl-editor]
+  (let [now                 (.now js/Date)
+        last-active         (:last-active network-repl-editor)
+        active              (:active network-repl-editor)
         inactivity-duration (quot (- now last-active) 1000)]
     [md-icon-button
      :tooltip (if active
@@ -42,54 +48,39 @@
                   (str "Last coding " inactivity-duration " seconds ago")
                   "Inactive"))
      :md-icon-name "zmdi-keyboard"
-     :style (if active (:style editor-properties) {:color "lightgray"})
+     :style (if active (:style network-repl-editor) {:color "lightgray"})
      :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])]))
 
 (defn editor-icon
-  [[editor-key editor-properties]]
+  [editor-key network-repl-editor]
   [md-icon-button
-   :tooltip (:name editor-properties)
+   :tooltip (:name network-repl-editor)
    :md-icon-name "zmdi-account-circle"
-   :style (:style editor-properties)
+   :style (:style network-repl-editor)
    :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])])
 
 (defn min-panel
-  [editor]
-  [h-box :align :center :justify :center :size "80px"
-   :children
-   [[editor-activity editor]
-    [editor-icon editor]]])
-
-(defn other-panel
-  [editor]
-  [h-box :size "auto"
-   :children
-   [[editor-icon editor]
-    [v-box :size "auto" :style eval-view/eval-panel-style
+  [[editor-key network-repl-editor]]
+  (when editor-key
+    [h-box :align :center :justify :center :size "80px"
      :children
-     [[other-component editor]]]]])
+     [[editor-activity editor-key network-repl-editor]
+      [editor-icon editor-key network-repl-editor]]]))
 
-(defn visibility-slider
-  [editors]
-  (let [visible-editor-count @(re-frame/subscribe [::subs/visible-editor-count])
-        slider-val           (reagent/atom (str (or visible-editor-count
-                                                    (count editors))))]
-    (fn
-      []
-      [v-box
+; TODO - send the most recent form when the component is made visible
+; use the inner / outer pattern from re-frame
+(defn network-editor-panel
+  [[editor-key network-repl-editor]]
+  (when (and editor-key (true? (:visibility network-repl-editor)))
+    [h-box :size "auto"
+     :children
+     [[editor-icon editor-key network-repl-editor]
+      [v-box :size "auto" :style eval-view/eval-panel-style
        :children
-       [[label :label (str "Max Visible Editors " @slider-val)]
-        [slider
-         :model slider-val
-         :max (str (count editors))
-         :width "150px"
-         :on-change (fn
-                      [new-val]
-                      (reset! slider-val (str new-val))
-                      (re-frame/dispatch [::events/visible-editor-count new-val]))]]])))
+       [[other-component network-repl-editor]]]]]))
 
 (defn other-panels
-  [visible-editors]
+  [network-repl-editors]
   [v-box :size "auto"
    :children
-   (vec (map #(other-panel %) visible-editors))])
+   (vec (map #(network-editor-panel %) network-repl-editors))])

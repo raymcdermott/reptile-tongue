@@ -9,12 +9,12 @@
     [reptile.tongue.events :as events]
     [reptile.tongue.code-mirror :as code-mirror]))
 
-(def eval-panel-style (merge (flex-child-style "1")
-                             {:border  "1px solid lightgray"
-                              :padding "5px 5px 5px 5px"}))
+(defonce eval-panel-style (merge (flex-child-style "1")
+                                 {:border  "1px solid lightgray"
+                                  :padding "5px 5px 5px 5px"}))
 
-(def eval-component-style (merge (flex-child-style "1")
-                                 {:padding "15px 5px 0px 5px"}))
+(defonce eval-component-style (merge (flex-child-style "1")
+                                     {:padding "15px 5px 0px 5px"}))
 
 (defn eval-did-mount
   []
@@ -31,11 +31,10 @@
 (defn eval-component
   [panel-name]
   (reagent/create-class
-    {:component-did-mount
-     (eval-did-mount)
-
-     :reagent-render
-     (code-mirror/text-area (str "eval-" panel-name))}))
+    {:component-did-mount  (eval-did-mount)
+     :reagent-render       (code-mirror/text-area (str "eval-" panel-name))
+     :component-did-update #(-> nil)                        ; noop to prevent reload
+     :display-name         "eval"}))
 
 (defn eval-panel
   [panel-name]

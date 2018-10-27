@@ -1,22 +1,22 @@
-{:deps    {org.clojure/clojure {:mvn/version "1.10.0-beta3"}
-           reptile-body        {:git/url "https://github.com/raymcdermott/reptile-body.git"
-                                :sha     "88acdb1c9b8225d3171172b473a700a58ca8d7db"}}
- :aliases {:fig     {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
-                                   com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
-                                   com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+{:deps    {org.clojure/clojure        {:mvn/version "1.10.0-beta4"}
+           org.clojure/tools.logging  {:mvn/version "0.4.0"}
+           com.taoensso/sente         {:mvn/version "1.12.0"}
+           com.taoensso/timbre        {:mvn/version "4.10.0"}
+           com.cognitect/transit-cljs {:mvn/version "0.8.256"}
 
-                                   org.clojure/tools.logging       {:mvn/version "0.4.0"}
-                                   com.taoensso/sente              {:mvn/version "1.12.0"}
-                                   com.taoensso/timbre             {:mvn/version "4.10.0"}
-                                   com.cognitect/transit-cljs      {:mvn/version "0.8.256"}
+           re-frame                   {:mvn/version "0.10.5"}
+           re-com                     {:mvn/version "2.2.0-SNAPSHOT"}
 
-                                   re-frame                        {:mvn/version "0.10.5"}
-                                   re-com                          {:mvn/version "2.2.0-SNAPSHOT"}
+           cljsjs/codemirror          {:mvn/version "5.31.0-0"}
+           cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}
+           reptile-body               {:local/root "/Users/ray/dev/reptile/reptile-lib"}}
 
-                                   cljsjs/codemirror               {:mvn/version "5.31.0-0"}
-                                   cljsjs/parinfer-codemirror      {:mvn/version "1.4.1-2"}}
-                     :extra-paths ["resources" "target"]
-                     :main-opts   ["-m" "figwheel.main"]}
-           :cursive {:main-opts ["-m" "figwheel.main" "-b" "dev"]}
-           :build   {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min     {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
+ :aliases {:fig   {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
+                                 com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
+                                 com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+                   :extra-paths ["resources" "target"]
+                   :main-opts   ["-m" "figwheel.main"]}
+           :repl  {:main-opts  ["-i" "@reptile/dev/start_reptile.clj"
+                                "-m" "figwheel.main" "-b" "dev"]}
+           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
+

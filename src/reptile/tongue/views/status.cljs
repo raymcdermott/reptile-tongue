@@ -6,11 +6,11 @@
                          radio-button p]]
     [reptile.tongue.subs :as subs]))
 
-(def default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
+(defonce default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                     :border      "1px solid lightgray"
                     :padding     "5px 5px 5px 5px"})
 
-(def status-style (merge (dissoc default-style :border)
+(defonce status-style (merge (dissoc default-style :border)
                          {:font-size   "10px"
                           :font-weight "lighter"
                           :color       "lightgrey"}))
