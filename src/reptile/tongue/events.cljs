@@ -57,7 +57,7 @@
       (re-frame/dispatch [::eval-result push-data])
 
       (= push-event :chsk/ws-ping)
-      nil
+      :noop                                                 ; do reply
 
       :else (println "Unhandled data push: %s" push-event))))
 

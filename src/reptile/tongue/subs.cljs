@@ -48,11 +48,6 @@
     (:logged-in db)))
 
 (reg-sub
-  ::observer
-  (fn [db]
-    (= "true" (:observer db))))
-
-(reg-sub
   ::observers
   (fn [db]
     (let [editors (:annotated-editors db)]

@@ -8,11 +8,9 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared
 - [X] Multi-user REPL connectivity
 - [X] Authenticated server access
 - [X] Real-time keystrokes from all connected users
-- [ ] Per user name spaces
 
 ### Other editors
-- [X] Visibility / sizing controls
-- [ ] Automatic visibility / sizing
+- [X] Visibility controls
 
 ### Clojure code support
 - [X] Parinfer integration
@@ -25,12 +23,25 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared
 ### Clojure evaluation
 - [X] Shared REPL state
 - [X] Shared, accessible history
-- [ ] Expandable exception viewing 
+- [X] Friendly exceptions 
 - [ ] Incremental feedback on long running REPL evaluations
 - [ ] Cancel long running REPL evaluations
 
 ### Deps.edn
 - [X] Add a library on demand (Maven & Git SHAs)
+
+### Security
+- [X] Secure REPtiLe server connection
+
+### REPtiLe developer features
+- [X] Live reloadable client code
+- [X] Live reloadable server code
+
+### User features under consideration post 1.0
+- [ ] Per user name spaces
+- [ ] Automatic editor visibility based on activity
+- [ ] OpenID Connect Services eg GitHub
+
 
 ## Development
 
