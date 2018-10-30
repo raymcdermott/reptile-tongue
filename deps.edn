@@ -17,8 +17,7 @@
                                 com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                   :main-opts   ["-m" "figwheel.main"]}
            :repl {:extra-paths ["dev" "../reptile-lib/dev"]
-                  :extra-deps  {clojure-watch               {:mvn/version "0.1.14"}
-                                org.clojure/tools.namespace {:mvn/version "0.2.11"}}
+                  :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
                   :main-opts   ["-i" "@reptile/start_reptile.clj"
                                 "-m" "figwheel.main" "-b" "dev" "-r"]}
            :min  {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}

@@ -3,99 +3,12 @@
     goog.date.Date
     [cljs.core.specs.alpha]
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
-    [taoensso.encore :as encore :refer [have have?]]
-    [taoensso.timbre :refer [tracef debugf infof warnf errorf]]
-    [taoensso.sente :as sente :refer [cb-success?]]
-    [taoensso.sente.packers.transit :as sente-transit]
-    [taoensso.timbre :as timbre]
     [cljs.tools.reader.edn :as rdr]
-    [cljs.core.async :as async]
+    [cljs.core.async]
+    [reptile.tongue.ws :as ws]
     [clojure.string :as str]
-    [reptile.tongue.config :as config]
     [reptile.tongue.db :as db]
     [reptile.tongue.code-mirror :as code-mirror]))
-
-;(timbre/set-level! :trace)                                  ; Uncomment for more logging
-
-; --- WS client ---
-(declare chsk ch-chsk chsk-send! chsk-state)
-
-(defmulti -event-msg-handler "Multimethod to handle Sente `event-msg`s"
-          ; Dispatch on event-id
-          :id)
-
-(defn event-msg-handler
-  "Wraps `-event-msg-handler` with logging, error catching, etc."
-  [{:as ev-msg :keys [id ?data event]}]
-  (-event-msg-handler ev-msg))
-
-(defmethod -event-msg-handler
-  :default                                                  ; Default/fallback case (no other matching handler)
-  [{:keys [event]}]
-  (println "Unhandled event: %s" event))
-
-(defmethod -event-msg-handler :chsk/state
-  [{:keys [?data]}]
-  (let [[_ new-state-map] (have vector? ?data)]
-    (re-frame/dispatch [::network-status (:open? new-state-map)])
-    (if (:first-open? new-state-map)
-      (println "Channel socket successfully established!: %s" new-state-map)
-      (println "Channel socket state change: %s" new-state-map))))
-
-(defmethod -event-msg-handler :chsk/recv
-  [{:keys [?data]}]
-  (let [push-event (first ?data)
-        push-data  (first (rest ?data))]
-    (cond
-      (= push-event :fast-push/keystrokes)
-      (re-frame/dispatch [::network-repl-editor-form-update push-data])
-
-      (= push-event :fast-push/editors)
-      (re-frame/dispatch [::repl-editors push-data])
-
-      (= push-event :fast-push/eval)
-      (re-frame/dispatch [::eval-result push-data])
-
-      (= push-event :chsk/ws-ping)
-      :noop                                                 ; do reply
-
-      :else (println "Unhandled data push: %s" push-event))))
-
-(defmethod -event-msg-handler :chsk/handshake
-  [{:keys [?data]}]
-  (println "Handshake: %s" ?data))
-
-(defonce router_ (atom nil))
-(defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
-(defn start-router! []
-  (stop-router!)
-  (reset! router_
-          (sente/start-client-chsk-router!
-            ch-chsk event-msg-handler)))
-
-(let [;; Serialization format, must use same val for client + server:
-      packer (sente-transit/get-transit-packer)             ; Needs Transit dep
-
-      {:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket-client!
-        "/chsk"                                             ; Must match server Ring routing URL
-        {:type   :auto
-         :host   config/server-host
-         :packer packer})]
-
-  (def chsk chsk)
-
-  ; ChannelSocket's receive channel
-  (def ch-chsk ch-recv)
-
-  ; ChannelSocket's send API fn
-  (def chsk-send! send-fn)
-
-  ; Watchable, read-only atom
-  (def chsk-state state)
-
-  ;; Now we have all of this set up we can start the router
-  (start-router!))
 
 ; --- Events ---
 (reg-event-db
@@ -208,7 +121,7 @@
   ::send-repl-eval
   (fn [[source form]]
     (when-not (str/blank? form)
-      (chsk-send! [:reptile/repl {:form   form
+      (ws/chsk-send! [:reptile/repl {:form   form
                                   :source source
                                   :forms  form}]
                   (or (:timeout form) 3000)))))
@@ -223,7 +136,7 @@
 (reg-fx
   ::server-login
   (fn [{:keys [login-options timeout]}]
-    (chsk-send! [:reptile/login login-options] (or timeout 3000)
+    (ws/chsk-send! [:reptile/login login-options] (or timeout 3000)
                 (fn [result]
                   (if (= result :login-ok)
                     (re-frame/dispatch [::logged-in-user (:user login-options)])
@@ -258,7 +171,7 @@
 (reg-fx
   ::sync-current-form
   (fn [{:keys [form name timeout]}]
-    (chsk-send! [:reptile/keystrokes {:form      form
+    (ws/chsk-send! [:reptile/keystrokes {:form      form
                                       :user-name name}]
                 (or timeout 3000))))
 
@@ -268,7 +181,8 @@
     (when-not (str/blank? (str/trim current-form))
       (let [local-repl-editor   (:local-repl-editor db)
             updated-repl-editor (assoc local-repl-editor :form current-form)]
-        {:db                 (assoc db :local-repl-editor updated-repl-editor)
+        {:db                 (assoc db :local-repl-editor updated-repl-editor
+                                       :current-form current-form)
          ::sync-current-form updated-repl-editor}))))
 
 ;; ------------------------------------------------------------------
@@ -321,7 +235,7 @@
 (reg-event-db
   ::logged-in-user
   (fn [db [_ user-name]]
-    (assoc db :user user-name)))
+    (assoc db :user user-name :local-repl-editor {:name user-name})))
 
 (reg-event-db
   ::repl-editor-code-mirror
@@ -335,10 +249,9 @@
   (fn [{:keys [db]} [_ history-form]]
     (let [local-repl-editor   (:local-repl-editor db)
           updated-repl-editor (assoc local-repl-editor :form history-form)]
-      {:db                            (assoc db :local-repl-editor updated-repl-editor)
+      {:db                            (assoc db :local-repl-editor updated-repl-editor
+                                                :current-form history-form)
        ::code-mirror/sync-code-mirror updated-repl-editor})))
-
-;; ------------------------------------------------------------------
 
 ;; ---------------------- Logged in network user
 (reg-event-db
@@ -348,19 +261,7 @@
                                            {(keyword user-name)
                                             {:name user-name :editor true}}))))
 
-;BUG??
-; (reg-event-db
-;  ::network-repl-editor
-;  (fn [db [_ code-mirror editor-key]]
-;    (let [network-repl-editor (get-in db [:network-repl-editors editor-key])
-;          updated-editor      (assoc network-repl-editor :code-mirror code-mirror)]
-;      (assoc db :network-repl-editors (merge (:network-repl-editors db)
-;                                             {editor-key updated-editor})))))
-
-;; ------------------------------------------------------------------
-
 ;; ---------------------- Editor visibility
-
 (defn toggle-visibility
   [editor-key editor-properties]
   (let [visibility (false? (:visibility editor-properties))]
@@ -425,7 +326,8 @@
     (let [local-user           (:user db)
           local-user-key       (keyword local-user)
           all-editors          (update-editor-defaults local-user repl-editors)
-          local-repl-editor    (get all-editors local-user-key)
+          local-editor         (get all-editors local-user-key)
+          local-repl-editor    (merge local-editor (:local-repl-editor db))
           network-repl-editors (dissoc all-editors local-user-key)]
 
       ; TODO - add back in once everything else stable

@@ -129,7 +129,8 @@
         add-lib-event (fn
                         []
                         (reset! show-add-lib? false)
-                        (re-frame/dispatch [::events/add-lib @lib-data]))]
+                        (re-frame/dispatch [::events/add-lib @lib-data]))
+        current-form  (re-frame/subscribe [::subs/current-form])]
     (fn
       []
       [v-box :size "auto"
@@ -141,7 +142,7 @@
          :children
          [[button
            :label "Eval (or Cmd-Enter)"
-           :on-click #(re-frame/dispatch [::events/eval local-repl-editor])]
+           :on-click #(re-frame/dispatch [::events/eval @current-form])]
           [gap :size "150px"]
           [md-icon-button
            :md-icon-name "zmdi-library"
