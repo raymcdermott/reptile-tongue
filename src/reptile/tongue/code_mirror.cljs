@@ -34,7 +34,6 @@
 (reg-fx
   ::sync-code-mirror
   (fn [user]
-    (println :scm :user (:name user) :cm (false? (nil? (:code-mirror user))))
     (sync-user-code-mirror! user)))
 
 (reg-fx

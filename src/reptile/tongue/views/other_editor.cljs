@@ -1,7 +1,7 @@
 (ns reptile.tongue.views.other-editor
   (:require
     [re-frame.core :as re-frame :refer [subscribe]]
-    [re-com.core :refer [h-box v-box gap label md-icon-button slider]]
+    [re-com.core :refer [box h-box v-box gap label md-icon-button slider]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
     [reptile.tongue.subs :as subs]
@@ -40,22 +40,20 @@
   (let [now                 (.now js/Date)
         last-active         (:last-active network-repl-editor)
         active              (:active network-repl-editor)
-        inactivity-duration (quot (- now last-active) 1000)]
+        inactivity-duration (- now last-active)]
+    ;TODO: BUG editor is being counted as active when they are NOT typing
+    (println :last-active last-active :inactivity-duration inactivity-duration :now now)
     [md-icon-button
-     :tooltip (if active
-                "Actively Coding"
-                (if (> inactivity-duration 10)
-                  (str "Last coding " inactivity-duration " seconds ago")
-                  "Inactive"))
+     :tooltip (str "Last coding " inactivity-duration " seconds ago")
      :md-icon-name "zmdi-keyboard"
-     :style (if active (:style network-repl-editor) {:color "lightgray"})
+     :style (if (> 30000 inactivity-duration) (:style network-repl-editor) {:color "lightgray"})
      :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])]))
 
 (defn editor-icon
   [editor-key network-repl-editor]
   [md-icon-button
    :tooltip (:name network-repl-editor)
-   :md-icon-name "zmdi-account-circle"
+   :md-icon-name (:icon network-repl-editor)
    :style (:style network-repl-editor)
    :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])])
 
@@ -67,14 +65,15 @@
      [[editor-activity editor-key network-repl-editor]
       [editor-icon editor-key network-repl-editor]]]))
 
-; TODO - send the most recent form when the component is made visible
+; TODO: BUG re-display the most recent form when the component is made visible
 ; use the inner / outer pattern from re-frame
 (defn network-editor-panel
   [[editor-key network-repl-editor]]
   (when (and editor-key (true? (:visibility network-repl-editor)))
     [h-box :size "auto"
      :children
-     [[editor-icon editor-key network-repl-editor]
+     [[box :align :center :justify :center
+       :child [editor-icon editor-key network-repl-editor]]
       [v-box :size "auto" :style eval-view/eval-panel-style
        :children
        [[other-component network-repl-editor]]]]]))

@@ -190,14 +190,15 @@
 ;; ---------------------- Editor default data
 
 (defn styled-editor
-  [editor color]
+  [editor color icon]
   (let [editor-key        (first (first editor))
         editor-name       (name editor-key)
         editor-properties (second (first editor))
         styled-properties (merge editor-properties
                                  {:abbr  (subs editor-name 0
                                                (min (count editor-name) 2))
-                                  :style {:color color}})]
+                                  :style {:color color}
+                                  :icon icon})]
     {editor-key styled-properties}))
 
 (defn editor-property-update
@@ -213,6 +214,23 @@
                         :last-active         (js/Date.now)}]
     {editor-key (merge properties default-editor)}))
 
+(defn editor-icons
+  ([] (editor-icons :random false))
+  ([& {:keys [random]}]
+   (let [data    ["mood" "mood-bad" "run" "walk" "face" "male-female" "lamp" "cutlery"
+                  "flower" "flower-alt" "coffee" "cake" "attachment" "attachment-alt"
+                  "fire" "nature" "puzzle-piece" "drink" "truck" "car-wash" "bug"]
+         sort-fn (if random (partial shuffle) (partial sort))]
+     (sort-fn (map (partial str "zmdi-") data)))))
+
+(defn colour-palette
+  ([] (colour-palette :random false))
+  ([& {:keys [random]}]
+   (let [data    ["silver" "gray" "black" "red" "maroon" "olive" "lime"
+                  "green" "aqua" "teal" "blue" "navy" "fuchsia" "purple"]
+         sort-fn (if random (partial shuffle) (partial sort))]
+     (sort-fn data))))
+
 ; TODO - maintain a uniform ordering as editors are added and ensure variety of styling
 (defn update-editor-defaults
   "Set various defaults for any new editors, leave existing editors untouched"
@@ -220,10 +238,11 @@
   (let [new-users          (filter (comp nil? :last-active last) editors)
         property-update-fn (partial editor-property-update repl-editor-name)
         updated-editors    (map property-update-fn new-users)
-        editor-colors      ["red" "blue" "black" "green" "orange" "gray"]
+        icons              (editor-icons :random true)
+        colours            (colour-palette :random true)
         styled-editors     (into {} (sort-by (comp :name last)
-                                             (map #(styled-editor %1 %2)
-                                                  updated-editors editor-colors)))]
+                                             (map #(styled-editor %1 %2 %3)
+                                                  updated-editors colours icons)))]
     (merge editors styled-editors)))
 
 
