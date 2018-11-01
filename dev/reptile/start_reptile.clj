@@ -1,5 +1,5 @@
-(ns reptile.dev.start-reptile
-  (:use [reptile.dev.reload-server]))
+(ns reptile.start-reptile
+  (:use [reptile.reload-server]))
 
 
 ;------------------- ************* -------------------

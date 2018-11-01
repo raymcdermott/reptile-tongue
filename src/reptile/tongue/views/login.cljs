@@ -22,31 +22,21 @@
              [[label :label "User name"]
               [input-text
                :model (:user @form-data)
+               :placeholder "Your name"
                :on-change #(swap! form-data assoc :user %)]
               [label :label "Shared secret"]
               [input-text
                :model (:secret @form-data)
+               :placeholder "The secret you know"
                :on-change #(swap! form-data assoc :secret %)]
-              [label :label "Observer mode?"]
-              [v-box
-               :children
-               [(doall (for [o ["true" "false"]]
-                         ^{:key o}
-                         [radio-button
-                          :label o
-                          :value o
-                          :model (:observer @form-data)
-                          :on-change #(swap! form-data assoc :observer %)]))]]
               [gap :size "30px"]
               [button :label "Access" :on-click process-ok]]]]]])
 
-; TODO - have a different key for observers rather selecting it on a form
+; TODO - have a flag so that we only pre-fill secret in dev mode
 (defn authenticate
   []
   (let [logged-in  @(re-frame/subscribe [::subs/logged-in])
-        form-data  (reagent/atom {:user     "your-name"
-                                  :secret   "warm-blooded-lizards-rock"
-                                  :observer "false"})
+        form-data  (reagent/atom {:user "" :secret "warm-blooded-lizards-rock"})
         process-ok (fn [] (re-frame/dispatch [::events/login @form-data]))]
     (fn []
       (when-not logged-in

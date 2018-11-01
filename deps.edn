@@ -11,12 +11,14 @@
            cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}
            reptile-body               {:local/root "/Users/ray/dev/reptile/reptile-lib"}}
 
- :aliases {:fig   {:extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
-                                 com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
-                                 com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-                   :extra-paths ["resources" "target"]
-                   :main-opts   ["-m" "figwheel.main"]}
-           :repl  {:main-opts  ["-i" "@reptile/dev/start_reptile.clj"
-                                "-m" "figwheel.main" "-b" "dev"]}
-           :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
+ :aliases {:fig  {:extra-paths ["resources" "target"]
+                  :extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.339"}
+                                com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
+                                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+                  :main-opts   ["-m" "figwheel.main"]}
+           :repl {:extra-paths ["dev" "../reptile-lib/dev"]
+                  :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
+                  :main-opts   ["-i" "@reptile/start_reptile.clj"
+                                "-m" "figwheel.main" "-b" "dev" "-r"]}
+           :min  {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
 
