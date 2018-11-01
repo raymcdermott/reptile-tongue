@@ -122,9 +122,9 @@
   (fn [[source form]]
     (when-not (str/blank? form)
       (ws/chsk-send! [:reptile/repl {:form   form
-                                  :source source
-                                  :forms  form}]
-                  (or (:timeout form) 3000)))))
+                                     :source source
+                                     :forms  form}]
+                     (or (:timeout form) 3000)))))
 
 (reg-event-fx
   ::eval
@@ -137,10 +137,10 @@
   ::server-login
   (fn [{:keys [login-options timeout]}]
     (ws/chsk-send! [:reptile/login login-options] (or timeout 3000)
-                (fn [result]
-                  (if (= result :login-ok)
-                    (re-frame/dispatch [::logged-in-user (:user login-options)])
-                    (js/alert "Login failed"))))))
+                   (fn [result]
+                     (if (= result :login-ok)
+                       (re-frame/dispatch [::logged-in-user (:user login-options)])
+                       (js/alert "Login failed"))))))
 
 (reg-event-fx
   ::login
@@ -172,8 +172,8 @@
   ::sync-current-form
   (fn [{:keys [form name timeout]}]
     (ws/chsk-send! [:reptile/keystrokes {:form      form
-                                      :user-name name}]
-                (or timeout 3000))))
+                                         :user-name name}]
+                   (or timeout 3000))))
 
 (reg-event-fx
   ::current-form
@@ -305,8 +305,10 @@
             updated-repl-editor  (assoc network-repl-editor :active true
                                                             :last-active (js/Date.now)
                                                             :form form)
+            ;_                    (println :pre network-repl-editors)
             network-repl-editors (merge network-repl-editors
                                         {editor-key updated-repl-editor})]
+        ;(println :post network-repl-editors)
         {:db                            (assoc db :network-repl-editors network-repl-editors)
          ::code-mirror/sync-code-mirror updated-repl-editor}))))
 
@@ -324,8 +326,9 @@
   ::repl-editors
   (fn [db [_ repl-editors]]
     (let [local-user           (:user db)
+          network-repl-editors (merge repl-editors (:network-repl-editors db))
           local-user-key       (keyword local-user)
-          all-editors          (update-editor-defaults local-user repl-editors)
+          all-editors          (update-editor-defaults local-user network-repl-editors)
           local-editor         (get all-editors local-user-key)
           local-repl-editor    (merge local-editor (:local-repl-editor db))
           network-repl-editors (dissoc all-editors local-user-key)]
