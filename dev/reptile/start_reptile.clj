@@ -8,5 +8,6 @@
 ;
 ;------------------- ************* -------------------
 
-(boot-and-watch-fs! "../reptile-lib/src" 58885 "warm-blooded-lizards-rock")
+(boot-and-watch-fs! "/opt/reptile/shared/reptile-body/src"
+                    58885 "warm-blooded-lizards-rock")
 
