@@ -177,12 +177,18 @@
     (fn
       []
       [v-box :style {:position "absolute"
-                     :top      "0px"
+                     :top      "10px"
                      :bottom   "0px"
                      :width    "100%"}
        :children
-       [[h-box :align :center :height "25px" :style other-editor/other-editors-style
-         :children [[other-editor-row @network-repl-editors]]]
+       [[h-box :height "25px" :style other-editor/other-editors-style
+         :children
+         [[h-box :align :center
+           :children [[button :label "Logout"
+                       :on-click #(re-frame/dispatch [::events/logout])]]]
+          [gap :size "100px"]
+          [h-box :align :center
+           :children [[other-editor-row @network-repl-editors]]]]]
         [h-split :splitter-size "2px"
          :panel-1 [editors-panel @local-repl-editor @network-repl-editors]
          :panel-2 [eval-view/eval-panel user-name]]
