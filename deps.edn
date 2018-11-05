@@ -12,12 +12,9 @@
            reptile-body               {:local/root "/opt/reptile/shared/reptile-body"}}
 
  :aliases {:fig  {:extra-paths ["resources" "target"]
-                  :extra-deps  {org.clojure/clojurescript
-                                {:mvn/version "1.10.339"}
-                                com.bhauman/figwheel-main
-                                {:mvn/version "0.1.9"}
-                                com.bhauman/rebel-readline-cljs
-                                {:mvn/version "0.1.4"}}
+                  :extra-deps  {org.clojure/clojurescript {:mvn/version "1.10.339"}
+                                com.bhauman/figwheel-main {:mvn/version "0.1.9"}
+                                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                   :main-opts   ["-m" "figwheel.main"]}
            :repl {:extra-paths ["dev" "/opt/reptile/shared/reptile-body/dev"]
                   :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}

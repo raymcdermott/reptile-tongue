@@ -135,11 +135,11 @@
 
 (reg-fx
   ::server-login
-  (fn [{:keys [login-options timeout]}]
-    (ws/chsk-send! [:reptile/login login-options] (or timeout 3000)
+  (fn [{:keys [options timeout]}]
+    (ws/chsk-send! [:reptile/login options] (or timeout 3000)
                    (fn [result]
                      (if (= result :login-ok)
-                       (re-frame/dispatch [::logged-in-user (:user login-options)])
+                       (re-frame/dispatch [::logged-in-user (:user options)])
                        (js/alert "Login failed"))))))
 
 (reg-event-fx
@@ -148,7 +148,18 @@
     {:db            (assoc (:db cofx) :proposed-user (:user login-options)
                                       :observer (:observer login-options)
                                       :user-name nil)
-     ::server-login {:login-options login-options}}))
+     ::server-login {:options login-options}}))
+
+(reg-fx
+  ::server-logout
+  (fn [{:keys [options timeout]}]
+    (ws/chsk-send! [:reptile/logout options] (or timeout 3000))))
+
+(reg-event-fx
+  ::logout
+  (fn [{:keys [db]} _]
+    {:db             (dissoc db :local-repl-editor :user)
+     ::server-logout {:options (:name (:local-repl-editor db))}}))
 
 (reg-event-fx
   ::add-lib
@@ -198,7 +209,7 @@
                                  {:abbr  (subs editor-name 0
                                                (min (count editor-name) 2))
                                   :style {:color color}
-                                  :icon icon})]
+                                  :icon  icon})]
     {editor-key styled-properties}))
 
 (defn editor-property-update
@@ -341,16 +352,23 @@
                                       {editor-key updated-repl-editor})]
       (assoc db :network-repl-editors network-repl-editors))))
 
+; repl-editors is supplied by the server. These transformations ensure that the same list
+; is maintained on the client when users are newly logged in or logged out.
 (reg-event-db
   ::repl-editors
   (fn [db [_ repl-editors]]
-    (let [local-user           (:user db)
-          network-repl-editors (merge repl-editors (:network-repl-editors db))
-          local-user-key       (keyword local-user)
-          all-editors          (update-editor-defaults local-user network-repl-editors)
-          local-editor         (get all-editors local-user-key)
-          local-repl-editor    (merge local-editor (:local-repl-editor db))
-          network-repl-editors (dissoc all-editors local-user-key)]
+    (let [local-user               (:user db)
+          network-repl-editor-keys (keys (dissoc (into {} repl-editors) (keyword local-user)))
+          updated-nreks            (select-keys (:network-repl-editors db) network-repl-editor-keys)
+          network-repl-editors     (merge repl-editors updated-nreks)
+          local-user-key           (keyword local-user)
+          all-editors              (update-editor-defaults local-user network-repl-editors)
+          local-editor             (get all-editors local-user-key)
+          local-repl-editor        (merge local-editor (:local-repl-editor db))
+          network-repl-editors     (dissoc all-editors local-user-key)]
+
+      (println :network-repl-editors (keys network-repl-editors))
+      (println :local-repl-editor local-repl-editor)
 
       ; TODO - add back in once everything else stable
       ;(when (= 2 (count styled-editors))
