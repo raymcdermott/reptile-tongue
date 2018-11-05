@@ -367,9 +367,6 @@
           local-repl-editor        (merge local-editor (:local-repl-editor db))
           network-repl-editors     (dissoc all-editors local-user-key)]
 
-      (println :network-repl-editors (keys network-repl-editors))
-      (println :local-repl-editor local-repl-editor)
-
       ; TODO - add back in once everything else stable
       ;(when (= 2 (count styled-editors))
       ;  ; Establish a recurring check whether the new editor is idle
