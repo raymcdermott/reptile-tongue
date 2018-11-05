@@ -5,7 +5,7 @@
            com.cognitect/transit-cljs {:mvn/version "0.8.256"}
 
            re-frame                   {:mvn/version "0.10.5"}
-           re-com                     {:mvn/version "2.2.0-SNAPSHOT"}
+           re-com                     {:mvn/version "2.2.0"}
 
            cljsjs/codemirror          {:mvn/version "5.31.0-0"}
            cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}
