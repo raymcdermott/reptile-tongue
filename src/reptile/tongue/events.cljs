@@ -44,8 +44,9 @@
           problems    (:clojure.spec.alpha/problems data)
           spec        (:clojure.spec.alpha/spec data)
           value       (:clojure.spec.alpha/value data)
-          args        (:clojure.spec.alpha/args data)]
-      (str "🤕 \uD83D\uDC94️\n" (pred-fails problems)))))
+          args        (:clojure.spec.alpha/args data)
+          spec-fails  (pred-fails problems)]
+      (str "🤕 💔 \n" (or spec-fails cause)))))
 
 (defn format-response
   [show-times? result]
