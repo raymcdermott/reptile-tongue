@@ -12,6 +12,9 @@
 
 (defonce browser-host (.-hostname js/location))
 
+(defonce browser-url (.-href js/location))
+
+
 ; default figwheel port
 (defonce figwheel-default-port "9500")
 

@@ -5,6 +5,7 @@
                          md-circle-icon-button md-icon-button input-textarea modal-panel
                          h-split v-split title flex-child-style radio-button p]]
     [reagent.core :as reagent]
+    [reptile.tongue.auth0 :as auth0]
     [reptile.tongue.subs :as subs]
     [reptile.tongue.events :as events]
     [reptile.tongue.code-mirror :as code-mirror]))
@@ -36,18 +37,37 @@
      :component-did-update #(-> nil)                        ; noop to prevent reload
      :display-name         "eval"}))
 
+(defn gist-render
+  []
+  (fn [this]
+    [md-icon-button
+     :tooltip "Save session to a GIST"
+     :md-icon-name "zmdi-github"
+     :on-click #(identity %)]))
+
+(defn auth0-inner
+  []
+  (reagent/create-class
+    {:component-did-mount  (identity 1)                            ;(re-frame/dispatch-sync [::auth0/login-config])
+     :reagent-render       (gist-render)
+     :component-did-update (identity 1)                            ; noop to prevent reload
+     :display-name         "gist-eval"}))
+
+(defn auth0-outer
+  []
+  )
+
 (defn eval-panel
   [panel-name]
-  (fn
-    []
-    (let [show-times? @(re-frame/subscribe [::subs/show-times])]
+  (let [show-times? @(re-frame/subscribe [::subs/show-times])
+        auth-result @(re-frame/subscribe [::subs/auth-result])]
+    (fn []
       [v-box :size "auto" :style eval-panel-style
        :children
        [[h-box :align :center :justify :end :gap "20px" :height "20px"
          :children
          [[md-icon-button
            :tooltip "Show evaluation times"
-           :size :smaller
            :md-icon-name "zmdi-timer"
            :style {:color (if show-times? "red" "black")}
            :on-click #(re-frame/dispatch [::events/show-times (if show-times?
@@ -55,12 +75,7 @@
                                                                 true)])]
           [md-icon-button
            :tooltip "Clear evaluations"
-           :size :smaller
            :md-icon-name "zmdi-delete"
-           :on-click #(re-frame/dispatch [::events/clear-evals])]
-          [md-icon-button
-           :tooltip "Wrap text (default ON)"
-           :size :smaller
-           :md-icon-name "zmdi-wrap-text"]]]
+           :on-click #(re-frame/dispatch [::events/clear-evals])]]]
         [box :size "auto" :style eval-component-style
          :child [eval-component panel-name]]]])))

@@ -78,4 +78,10 @@
   (fn [db]
     (keys (:network-repl-editors db))))
 
+(reg-sub
+  ::auth-result
+  (fn [db]
+    (println :auth-result 0)
+    (:auth-result db)))
+
 

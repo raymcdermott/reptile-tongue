@@ -2,6 +2,7 @@
   (:require
     [reagent.core :as reagent]
     [re-frame.core :as re-frame]
+    [reptile.tongue.auth0 :as auth0]
     [reptile.tongue.events :as events]
     [reptile.tongue.main-view :as main-view]
     [reptile.tongue.config :as config]))

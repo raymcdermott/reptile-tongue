@@ -174,8 +174,6 @@
        ::send-repl-eval [:system (str use-ns "\n" lib-spec)]})))
 
 
-;; ------------------------------------------------------------------
-
 ;; ---------------------- Network sync
 
 ;; Text
@@ -341,6 +339,18 @@
         ;(println :post network-repl-editors)
         {:db                            (assoc db :network-repl-editors network-repl-editors)
          ::code-mirror/sync-code-mirror updated-repl-editor}))))
+
+(reg-fx
+  ::save-gist
+  (fn [kw]
+    (println :save-gist kw)))
+
+(reg-event-fx
+  ::gist-persist
+  (fn [{:keys [db]} _]
+    {:db         (dissoc db :saved-gist false)
+     ::save-gist :foo}))
+
 
 (reg-event-db
   ::network-repl-editor-code-mirror
