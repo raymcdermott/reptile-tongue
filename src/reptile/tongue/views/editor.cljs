@@ -13,7 +13,8 @@
     [reptile.tongue.views.other-editor :as other-editor]
     [reptile.tongue.views.eval :as eval-view]
     [reptile.tongue.views.visual-history :as visual-history]
-    [reptile.tongue.views.status :as status]))
+    [reptile.tongue.views.status :as status]
+    [clojure.string :as str]))
 
 (defonce default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
                         :border      "1px solid lightgrey"
@@ -94,19 +95,71 @@
   [new-value]
   (re-frame/dispatch [::events/current-form new-value]))
 
+;; placeholder that we will track more completely later
+(def clj-fns
+  (sort (map (comp name first)
+             (ns-publics 'cljs.core))))
+
+(def word-re #"[\w$]+")
+
+(defn completion-list
+  [word]
+  (let [return-list
+        (apply array (cond->>
+                       clj-fns word (filter (fn [s]
+                                              (clojure.string/starts-with?
+                                                s word)))))]
+    (println return-list)
+    return-list))
+
+(defn clojure-completions
+  [editor _]
+  (let [cur      (.getCursor editor)
+        line-num (.-line cur)
+        end      (.-ch cur)
+        cur-line (.getLine editor line-num)
+        start    (loop [start end]
+                   (if (.test word-re (.charAt cur-line (dec start)))
+                     (recur (dec start))
+                     start))
+        cur-word (if (not= start end)
+                   (subs cur-line start end))]
+
+    (clj->js
+      {:list (vec (cond->> clj-fns
+                           cur-word (filter
+                                      (fn [s]
+                                        (clojure.string/starts-with?
+                                          s cur-word)))))
+       :from (js/CodeMirror.Pos line-num start)
+       :to   (js/CodeMirror.Pos line-num end)})))
+
+(defn trigger-autocomplete [cm]
+  (js/setTimeout
+    (fn []
+      (when-not (.. cm -state -completionActive)
+        (.showHint cm #js {:completeSingle false})))
+    100)
+  js/CodeMirror.Pass)
+
 (defn editor-did-mount
   []
   (fn [this-textarea]
     (let [node            (reagent/dom-node this-textarea)
-          extra-edit-keys {:Cmd-Enter #(re-frame/dispatch
-                                         [::events/eval (.getValue %)])}
+          extra-edit-keys {:Ctrl-Space trigger-autocomplete
+                           :Cmd-Enter  (fn [cm]
+                                         (re-frame/dispatch
+                                           [::events/eval (.getValue cm)]))}
           options         {:options {:lineWrapping  true
                                      :autofocus     true
                                      :matchBrackets true
                                      :lineNumbers   true
+                                     :hintOptions   {:hint clojure-completions}
                                      :extraKeys     extra-edit-keys}}
           code-mirror     (code-mirror/parinfer node options)]
-      (.on code-mirror "change" #(notify-edits (.getValue %)))
+
+      (.on code-mirror "change" (fn [cm _] (notify-edits (.getValue cm))))
+
       (re-frame/dispatch [::events/repl-editor-code-mirror code-mirror]))))
 
 (defn edit-component
@@ -130,13 +183,21 @@
                         []
                         (reset! show-add-lib? false)
                         (re-frame/dispatch [::events/add-lib @lib-data]))
-        current-form  (re-frame/subscribe [::subs/current-form])]
+        current-form  (re-frame/subscribe [::subs/current-form])
+        completions   (re-frame/subscribe [::subs/completions])]
     (fn
       []
       [v-box :size "auto"
        :children
        [[box :size "auto" :style eval-panel-style :child
          [edit-component (:name local-repl-editor)]]
+        [gap :size "5px"]
+        [h-box
+         :children
+         [[label :label "Completions"]
+          (when (not-empty @completions)
+            (doall (map (fn [c] [label :label c])
+                        (take 5 @completions))))]]
         [gap :size "5px"]
         [h-box :align :center
          :children

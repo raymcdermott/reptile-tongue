@@ -5,6 +5,7 @@
     [cljsjs.codemirror]
     [cljsjs.codemirror.mode.clojure]
     [cljsjs.codemirror.addon.edit.matchbrackets]
+    [cljsjs.codemirror.addon.hint.show-hint]
     [cljsjs.parinfer-codemirror]
     [cljsjs.parinfer]))
 

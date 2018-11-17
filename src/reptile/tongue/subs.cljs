@@ -38,6 +38,11 @@
     (:current-form db)))
 
 (reg-sub
+  ::completions
+  (fn [db]
+    (:completions db)))
+
+(reg-sub
   ::local-repl-editor
   (fn [db]
     (:local-repl-editor db)))

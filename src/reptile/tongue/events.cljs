@@ -8,7 +8,8 @@
     [reptile.tongue.ws :as ws]
     [clojure.string :as str]
     [reptile.tongue.db :as db]
-    [reptile.tongue.code-mirror :as code-mirror]))
+    [reptile.tongue.code-mirror :as code-mirror]
+    [clojure.string :as string]))
 
 ; --- Events ---
 (reg-event-db
@@ -197,6 +198,44 @@
                                        :current-form current-form)
          ::sync-current-form updated-repl-editor}))))
 
+;; favour code-mirror hints
+#_(reg-event-db
+  ::current-word
+  (fn [db [_ current-word]]
+    (println ::current-word current-word)
+    (let [{:keys [text removed]} current-word
+          upd-str (apply str text)]
+      (println "text" (last text)
+               "found" (re-seq #"[a-z]-" upd-str)
+               "res" (if (seq? (re-seq #"[a-z]-" upd-str))
+                       :core-fn-letters
+                       :not-core-fn-letters)))
+
+    ;; TODO - work out the completions
+
+    ;; conj the texts until non [a-z-]
+    ;; check for completions on each keystroke
+    ;; something like
+    ;; (def core-ns (map first (ns-publics 'clojure.core)))
+    ;; (sort (filter #(clojure.string/starts-with? % "re-") core-ns))
+    ;; set completions on the db
+    ;; unset completions when not core letter
+
+    ;; The server should include current ns defs on each call
+    ;; a bit wasteful but there are rarely going to be > 10
+    ;; and we can optimise down the line
+
+    ;; any newly included namespaces should be tracked for inclusion
+    ;; in the list. This could make the payload bigger so maybe we do maintain
+    ;; another atom / transmission route
+
+    ;; then combine defs from the user ns with the clojure.core
+
+    (assoc db :current-word current-word)
+
+    )
+
+  )
 ;; ------------------------------------------------------------------
 
 ;; ---------------------- Editor default data
