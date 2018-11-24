@@ -40,7 +40,7 @@
 (reg-sub
   ::completions
   (fn [db]
-    (:completions db)))
+    (get-in db [:local-repl-editor :completions])))
 
 (reg-sub
   ::local-repl-editor

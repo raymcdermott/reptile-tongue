@@ -1,15 +1,14 @@
 (ns reptile.tongue.events
   (:require
     goog.date.Date
-    [cljs.core.specs.alpha]
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
     [cljs.tools.reader.edn :as rdr]
-    [cljs.core.async]
+    [clojure.core.async]
+    [clojure.string :as string]
+    [reptile.tongue.helpers :refer [js->cljs]]
     [reptile.tongue.ws :as ws]
-    [clojure.string :as str]
     [reptile.tongue.db :as db]
-    [reptile.tongue.code-mirror :as code-mirror]
-    [clojure.string :as string]))
+    [reptile.tongue.code-mirror :as code-mirror]))
 
 ; --- Events ---
 (reg-event-db
@@ -39,7 +38,7 @@
 
 (defn check-exception
   [val]
-  (when (str/starts-with? val "{:cause")
+  (when (string/starts-with? val "{:cause")
     (let [reader-opts {:default default-reptile-tag-reader}
           {:keys [cause via trace data]} (rdr/read-string reader-opts val)
           problems    (:clojure.spec.alpha/problems data)
@@ -122,7 +121,7 @@
 (reg-fx
   ::send-repl-eval
   (fn [[source form]]
-    (when-not (str/blank? form)
+    (when-not (string/blank? form)
       (ws/chsk-send! [:reptile/repl {:form   form
                                      :source source
                                      :forms  form}]
@@ -180,36 +179,74 @@
 
 ;; ---------------------- Network sync
 
+(defn changed-part-of-line [form {:keys [to-line to-ch]}]
+  "Returns the substring up to the char that is changed
+  on the changed line from within `form`"
+  (-> form
+      string/split-lines
+      (nth to-line)
+      (subs 0 (inc to-ch))))
+
+(defn active-token
+  [form {:keys [text] :as change-data}]
+  (when (re-find #"\w+" (apply str text))
+    (->> (changed-part-of-line form change-data)
+         clojure.string/reverse
+         (re-find #"\w+")
+         clojure.string/reverse)))
+
+(defn prefixed-form
+  [form {:keys [to-line to-ch]}]
+  (let [form-lines   (string/split-lines form)
+        line-to-edit (nth form-lines to-line)
+        prefix-line  (str (subs line-to-edit 0 to-ch)
+                          "__prefix__"
+                          (subs line-to-edit to-ch))]
+    (->> (conj (drop (inc to-line) form-lines)
+               prefix-line
+               (take to-line form-lines))
+         flatten
+         (interpose "\n")
+         string/join)))
+
+(defn change->data
+  [{:keys [from to origin] :as change-data}]
+  (assoc change-data :from-line (.-line from)
+                     :from-ch (.-ch from)
+                     :to-line (.-line to)
+                     :to-ch (.-ch to)
+                     :source (if (= origin "+input") :user :api)))
+
 ;; Text
 (reg-fx
   ::sync-current-form
-  (fn [{:keys [form name timeout]}]
-    (ws/chsk-send! [:reptile/keystrokes {:form      form
-                                         :user-name name}]
+  (fn [[{:keys [form name timeout]} prefixed-form to-complete]]
+    (ws/chsk-send! [:reptile/keystrokes {:form          form
+                                         :prefixed-form prefixed-form
+                                         :to-complete   to-complete
+                                         :user-name     name}]
                    (or timeout 3000))))
 
 (reg-event-fx
   ::current-form
-  (fn [{:keys [db]} [_ current-form]]
-    (when-not (str/blank? (str/trim current-form))
+  (fn [{:keys [db]} [_ current-form change-object]]
+    (when-not (string/blank? (string/trim current-form))
       (let [local-repl-editor   (:local-repl-editor db)
+            change-data         (change->data (js->cljs change-object))
+            to-complete         (active-token current-form change-data)
+            prefixed-form       (prefixed-form current-form change-data)
             updated-repl-editor (assoc local-repl-editor :form current-form)]
+        ;(println ::current-form :change-data change-data)
         {:db                 (assoc db :local-repl-editor updated-repl-editor
-                                       :current-form current-form)
-         ::sync-current-form updated-repl-editor}))))
+                                       :current-form current-form
+                                       :change-data change-data
+                                       :to-complete to-complete)
+         ::sync-current-form [updated-repl-editor prefixed-form to-complete]}))))
 
 ;; favour code-mirror hints
-#_(reg-event-db
+(reg-event-db
   ::current-word
-  (fn [db [_ current-word]]
-    (println ::current-word current-word)
-    (let [{:keys [text removed]} current-word
-          upd-str (apply str text)]
-      (println "text" (last text)
-               "found" (re-seq #"[a-z]-" upd-str)
-               "res" (if (seq? (re-seq #"[a-z]-" upd-str))
-                       :core-fn-letters
-                       :not-core-fn-letters)))
+  (fn [db [_ change-data]]
 
     ;; TODO - work out the completions
 
@@ -231,7 +268,7 @@
 
     ;; then combine defs from the user ns with the clojure.core
 
-    (assoc db :current-word current-word)
+    (assoc db :current-word change-data)
 
     )
 
@@ -367,8 +404,15 @@
 ;; Obtain an updated form from a network user
 (reg-event-fx
   ::network-repl-editor-form-update
-  (fn [{:keys [db]} [_ {:keys [user form]}]]
-    (when-not (= user (:user db))
+  (fn [{:keys [db]} [_ {:keys [user form completions]}]]
+    (if (= user (:user db))
+      (let [editor           (:local-repl-editor db)
+            with-completions (assoc editor :completions completions
+                                           :change-data (:change-data db)
+                                           :to-complete (:to-complete db))]
+        ;(println ::network-repl-editor-form-update (:change-data db))
+        {:db                         (assoc db :local-repl-editor with-completions)
+         ::code-mirror/auto-complete with-completions})
       (let [editor-key           (keyword user)
             network-repl-editors (:network-repl-editors db)
             network-repl-editor  (get network-repl-editors editor-key)
