@@ -15,7 +15,7 @@
 
   background: white;
   font-size: 90%;
-  font-family: monospace;
+  font-family: Monospaced, Menlo, Monaco, Consolas, "Courier New", monospace;
 
   max-height: 20em;
   overflow-y: auto;
