@@ -128,10 +128,10 @@
 (defn edit-panel
   [local-repl-editor]
   (let [show-add-lib? (reagent/atom false)
-        lib-data      (reagent/atom {:name    "clojurewerkz/money"
-                                     :version "1.10.0"
-                                     :url     "https://github.com/?????"
-                                     :sha     "666-???"
+        lib-data      (reagent/atom {:name    "org.clojure/test.check"
+                                     :version "0.10.0-alpha3"
+                                     :url     "https://github.com/clojure/test.check.git"
+                                     :sha     "8bc8057d7954674673ae0329b3233139ddba3f71"
                                      :maven   true})
         add-lib-event (fn
                         []
