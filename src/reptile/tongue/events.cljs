@@ -28,29 +28,32 @@
            (interpose "\n")
            (apply str)))
 
-(defn format-nil-vals
-  [val]
-  (if (nil? val) "nil" val))
-
 (defn default-reptile-tag-reader
   [tag val]
   {:nk-tag tag :nk-val (rdr/read-string (str val))})
 
+(defn read-exception
+  [val]
+  (try
+    (let [reader-opts {:default default-reptile-tag-reader}]
+      (rdr/read-string reader-opts val))
+    (catch :default _ignore-reader-errors)))
+
+;; TODO integrate a nice spec formatting library after 1.10 is GA
 (defn check-exception
   [val]
-  (when (string/starts-with? val "{:cause")
-    (let [reader-opts {:default default-reptile-tag-reader}
-          {:keys [cause via trace data]} (rdr/read-string reader-opts val)
-          problems    (:clojure.spec.alpha/problems data)
-          spec        (:clojure.spec.alpha/spec data)
-          value       (:clojure.spec.alpha/value data)
-          args        (:clojure.spec.alpha/args data)
-          spec-fails  (pred-fails problems)]
-      (str "🤕 💔 \n" (or spec-fails cause)))))
+  (let [{:keys [cause via trace data phase]} (read-exception val)
+        problems   (:clojure.spec.alpha/problems data)
+        spec       (:clojure.spec.alpha/spec data)
+        value      (:clojure.spec.alpha/value data)
+        args       (:clojure.spec.alpha/args data)
+        spec-fails (and problems (pred-fails problems))]
+    (when (or spec-fails cause)
+      (str "💔\n" (or spec-fails cause)))))
 
 (defn format-response
   [show-times? result]
-  (let [{:keys [val tag ms]} result
+  (let [{:keys [val tag ms] :as x} result
         exception-data (check-exception val)]
     (cond
       exception-data
@@ -61,7 +64,7 @@
 
       (= tag :ret)
       (str (when show-times? (str ms " ms "))
-           "=> " (format-nil-vals val) "\n"))))
+           "=> " (or val "nil") "\n"))))
 
 ;; Demo of live changes
 ;(defn format-responses
@@ -88,7 +91,6 @@
       {:db                                 (assoc db :eval-results [])
        ::code-mirror/set-code-mirror-value {:value       ""
                                             :code-mirror code-mirror}})))
-
 (reg-event-fx
   ::eval-result
   (fn [{:keys [db]} [_ eval-result]]
@@ -100,7 +102,6 @@
       {:db                                 (assoc db :eval-results eval-results)
        ::code-mirror/set-code-mirror-value {:value       str-results
                                             :code-mirror code-mirror}})))
-
 (reg-event-fx
   ::show-times
   (fn [{:keys [db]} [_ show-times]]
@@ -112,7 +113,6 @@
       {:db                                 (assoc db :show-times show-times)
        ::code-mirror/set-code-mirror-value {:value       str-results
                                             :code-mirror code-mirror}})))
-
 (reg-event-db
   ::eval-code-mirror
   (fn [db [_ code-mirror]]
@@ -142,6 +142,28 @@
                      (if (= result :login-ok)
                        (re-frame/dispatch [::logged-in-user (:user options)])
                        (js/alert "Login failed"))))))
+
+;(reg-event-fx
+;  ::document-hint
+;  (fn [{:keys [db]} [_ doc-symbol doc-ns]]
+;    (let [kw-sym (keyword (str doc-ns "-" doc-symbol))
+;          doc    (get-in db [:docs (keyword (str doc-ns "-" doc-symbol))])]
+;      (if doc
+;        (re-frame/dispatch [::found-doc {:doc-symbol doc-symbol :doc-ns doc-ns} doc])
+;        {:db        db
+;         ::doc-miss {:doc-symbol doc-symbol :doc-ns doc-ns}}))))
+;
+;(reg-fx
+;  ::doc-miss
+;  (fn [options]
+;    (ws/chsk-send! [:reptile/doc-hint options] (or timeout 3000)
+;                   (fn [doc]
+;                     (re-frame/dispatch [::found-doc options doc])))))
+;
+;(reg-event-db
+;  ::found-doc
+;  (fn [db [_ {:keys [doc-ns doc-symbol]} doc]]
+;    (assoc-in db [:docs (keyword (str doc-ns "-" doc-symbol))] doc)))
 
 (reg-event-fx
   ::login

@@ -1,7 +1,7 @@
 (ns reptile.tongue.code-mirror
   "Code mirror support"
   (:require
-    [re-frame.core :refer [reg-fx]]
+    [re-frame.core :refer [reg-fx dispatch]]
     [cljsjs.codemirror]
     [cljsjs.codemirror.mode.clojure]
     [cljsjs.codemirror.addon.edit.matchbrackets]
@@ -33,12 +33,9 @@
   (.setValue code-mirror form))
 
 (defn select-item
+  "Trigger a documentation round trip for the method"
   [completion _]
-  (println :select-item completion))
-
-(defn pick-item
-  [completion]
-  (println :pick-item completion))
+  (dispatch [::document-hint completion]))
 
 (defn clojure-completions
   [completions editor _]
@@ -58,8 +55,8 @@
                              :from (js/CodeMirror.Pos line-num start)
                              :to   (js/CodeMirror.Pos line-num end)})]
 
-    (.on js/CodeMirror result "select" select-item)
-    (.on js/CodeMirror result "pick" pick-item)
+    ; After ClojureX
+    ;(.on js/CodeMirror result "select" select-item)
 
     result))
 

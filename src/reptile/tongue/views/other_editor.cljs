@@ -42,7 +42,7 @@
         active              (:active network-repl-editor)
         inactivity-duration (- now last-active)]
     ;TODO: BUG editor is being counted as active when they are NOT typing
-    (println :last-active last-active :inactivity-duration inactivity-duration :now now)
+    ;(println :last-active last-active :inactivity-duration inactivity-duration :now now)
     [md-icon-button
      :tooltip (str "Last coding " inactivity-duration " seconds ago")
      :md-icon-name "zmdi-keyboard"

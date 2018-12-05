@@ -2,5 +2,5 @@
  :output-to       "resources/public/js/compiled/app.js"
  :output-dir      "resources/public/js/compiled/out"
  :asset-path      "js/compiled/out"
- :closure-defines {reptile.tongue.config/TAIL_SERVER "reptile.extemporay.io"}
+ :closure-defines {reptile.tongue.config/TAIL_SERVER "fd896fca.eu.ngrok.io"}
  :external-config {:devtools/config {:features-to-install :all}}}
