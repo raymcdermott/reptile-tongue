@@ -39,10 +39,17 @@
 
 (defn clojure-completions
   [completions editor _]
-  (let [filtered   (filter #(or (= (:type %) :function)
-                                (= (:type %) :macro)
-                                (= (:type %) :special-form)) completions)
-        candidates (clj->js (map (fn [c] {:text (:candidate c)}) filtered))
+  (let [relevant   (filter (fn [c]
+                             (cond
+                               (and (:ns c) (= "clojure.core" (:ns c))) c
+                               (not (= (:type c) :namespace)) c))
+                           completions)
+        candidates (clj->js (map (fn [c]
+                                   {:text        (:candidate c)
+                                    :displayText (str (:candidate c)
+                                                      (when (= (:type c) :function)
+                                                        (str " (" (:ns c) ")")))})
+                                 relevant))
         cur        (.getCursor editor)
         line-num   (.-line cur)
         end        (.-ch cur)

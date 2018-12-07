@@ -201,43 +201,48 @@
 
 ;; ---------------------- Network sync
 
-(defn changed-part-of-line [form {:keys [to-line to-ch]}]
+(defn changed-part-of-line
   "Returns the substring up to the char that is changed
   on the changed line from within `form`"
+  [form {:keys [to-line to-ch] :as change-data}]
   (-> form
       string/split-lines
       (nth to-line)
       (subs 0 (inc to-ch))))
 
 (defn active-token
-  [form {:keys [text] :as change-data}]
+  [form {:keys [text to-ch] :as change-data}]
   (when (re-find #"\w+" (apply str text))
-    (->> (changed-part-of-line form change-data)
-         clojure.string/reverse
-         (re-find #"\w+")
-         clojure.string/reverse)))
+    (let [token     (->> (changed-part-of-line form change-data)
+                         clojure.string/reverse
+                         (re-find #"\w+")
+                         clojure.string/reverse)
+          token-len (count token)]
+      (assoc change-data :token token
+                         :token-len token-len
+                         :token-start (- (inc to-ch) token-len)))))
 
 (defn prefixed-form
-  [form {:keys [to-line to-ch]}]
-  (let [form-lines   (string/split-lines form)
-        line-to-edit (nth form-lines to-line)
-        prefix-line  (str (subs line-to-edit 0 to-ch)
-                          "__prefix__"
-                          (subs line-to-edit to-ch))]
-    (->> (conj (drop (inc to-line) form-lines)
-               prefix-line
-               (take to-line form-lines))
-         flatten
-         (interpose "\n")
-         string/join)))
+  [form {:keys [to-line token token-start] :as change-data}]
+  (let [form-lines    (string/split-lines form)
+        line-to-edit  (nth form-lines to-line)
+        prefix-line   (str (subs line-to-edit 0 token-start)
+                           (-> line-to-edit
+                               (subs token-start)
+                               (string/replace-first token "__prefix__")))
+        prefixed-form (->> (conj (drop (inc to-line) form-lines)
+                                 prefix-line
+                                 (take to-line form-lines))
+                           flatten
+                           (interpose "\n")
+                           string/join)]
+    (assoc change-data :prefixed-form prefixed-form)))
 
-(defn change->data
-  [{:keys [from to origin] :as change-data}]
-  (assoc change-data :from-line (.-line from)
-                     :from-ch (.-ch from)
-                     :to-line (.-line to)
-                     :to-ch (.-ch to)
-                     :source (if (= origin "+input") :user :api)))
+(defn mark-completion-prefix
+  [current-form change-data]
+  (->> change-data
+       (active-token current-form)
+       (prefixed-form current-form)))
 
 ;; Text
 (reg-fx
@@ -249,21 +254,27 @@
                                          :user-name     name}]
                    (or timeout 3000))))
 
+(defn change->data
+  [{:keys [from to origin] :as change-data}]
+  (assoc change-data :from-line (.-line from)
+                     :from-ch (.-ch from)
+                     :to-line (.-line to)
+                     :to-ch (.-ch to)
+                     :source (if (= origin "+input") :user :api)))
+
 (reg-event-fx
   ::current-form
   (fn [{:keys [db]} [_ current-form change-object]]
     (when-not (string/blank? (string/trim current-form))
       (let [local-repl-editor   (:local-repl-editor db)
             change-data         (change->data (js->cljs change-object))
-            to-complete         (active-token current-form change-data)
-            prefixed-form       (prefixed-form current-form change-data)
+            {:keys [token prefixed-form]} (mark-completion-prefix current-form change-data)
             updated-repl-editor (assoc local-repl-editor :form current-form)]
-        ;(println ::current-form :change-data change-data)
         {:db                 (assoc db :local-repl-editor updated-repl-editor
                                        :current-form current-form
                                        :change-data change-data
-                                       :to-complete to-complete)
-         ::sync-current-form [updated-repl-editor prefixed-form to-complete]}))))
+                                       :to-complete token)
+         ::sync-current-form [updated-repl-editor prefixed-form token]}))))
 
 ;; favour code-mirror hints
 (reg-event-db
