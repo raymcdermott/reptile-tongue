@@ -83,4 +83,20 @@
   (fn [db]
     (keys (:network-repl-editors db))))
 
+(reg-sub
+  ::show-add-lib-panel
+  (fn [db]
+    (:show-add-lib-panel db)))
+
+(reg-sub
+  ::doc-show?
+  (fn [db]
+    (:doc-show? db)))
+
+(reg-sub
+  ::doc-text
+  (fn [db]
+    (:doc-text db)))
+
+
 

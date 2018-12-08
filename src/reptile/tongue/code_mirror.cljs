@@ -32,24 +32,36 @@
   [{:keys [code-mirror form]}]
   (.setValue code-mirror form))
 
+(defn shown-item
+  "Open the documentation panel"
+  []
+  (dispatch [:reptile.tongue.events/show-doc-panel true]))
+
 (defn select-item
-  "Trigger a documentation round trip for the method"
+  "Documentation for the selected completion"
   [completion _]
-  (dispatch [::document-hint completion]))
+  (dispatch [:reptile.tongue.events/doc-text
+             (js->clj completion :keywordize-keys true)]))
+
+(defn pick-item
+  "Documentation for the picked completion"
+  [completion]
+  (dispatch [:reptile.tongue.events/doc-text
+             (js->clj completion :keywordize-keys true)]))
+
+(defn close-item
+  "Close the documentation panel"
+  []
+  (dispatch [:reptile.tongue.events/show-doc-panel false]))
 
 (defn clojure-completions
   [completions editor _]
-  (let [relevant   (filter (fn [c]
-                             (cond
-                               (and (:ns c) (= "clojure.core" (:ns c))) c
-                               (not (= (:type c) :namespace)) c))
-                           completions)
-        candidates (clj->js (map (fn [c]
-                                   {:text        (:candidate c)
-                                    :displayText (str (:candidate c)
-                                                      (when (= (:type c) :function)
-                                                        (str " (" (:ns c) ")")))})
-                                 relevant))
+  (let [candidates (clj->js (map
+                              (fn [c]
+                                {:text        (:candidate c)
+                                 :displayText (str (:candidate c) " " (:args c))
+                                 :docs        (:docs c)})
+                              completions))
         cur        (.getCursor editor)
         line-num   (.-line cur)
         end        (.-ch cur)
@@ -62,8 +74,10 @@
                              :from (js/CodeMirror.Pos line-num start)
                              :to   (js/CodeMirror.Pos line-num end)})]
 
-    ; After ClojureX
-    ;(.on js/CodeMirror result "select" select-item)
+    (.on js/CodeMirror result "shown" shown-item)
+    (.on js/CodeMirror result "select" select-item)
+    (.on js/CodeMirror result "pick" pick-item)
+    (.on js/CodeMirror result "close" close-item)
 
     result))
 
@@ -71,8 +85,9 @@
   (let [hint-fn (partial clojure-completions completions)]
     (js/setTimeout
       (fn []
-        (.showHint code-mirror (clj->js {:hint           hint-fn
-                                         :completeSingle false})))
+        (.showHint code-mirror
+                   (clj->js {:hint           hint-fn
+                             :completeSingle false})))
       100)
     js/CodeMirror.Pass))
 

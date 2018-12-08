@@ -42,14 +42,14 @@
 ;; TODO integrate a nice spec formatting library after 1.10 is GA
 (defn check-exception
   [val]
-  (let [{:keys [cause via trace data phase]} (read-exception val)
+  (let [{:keys [cause via trace data phase] :as exc} (read-exception val)
         problems   (:clojure.spec.alpha/problems data)
         spec       (:clojure.spec.alpha/spec data)
         value      (:clojure.spec.alpha/value data)
         args       (:clojure.spec.alpha/args data)
         spec-fails (and problems (pred-fails problems))]
-    (when (or spec-fails cause)
-      (str "💔\n" (or spec-fails cause)))))
+    (when-let [problem (or spec-fails cause)]
+      (str "💔\n" problem))))
 
 (defn format-response
   [show-times? result]
@@ -184,6 +184,23 @@
     {:db             (dissoc db :local-repl-editor :user)
      ::server-logout {:options (:name (:local-repl-editor db))}}))
 
+(reg-event-db
+  ::show-add-lib-panel
+  (fn [db [_ show?]]
+    (assoc db :show-add-lib-panel show?)))
+
+(reg-event-db
+  ::show-doc-panel
+  (fn [db [_ show?]]
+    ;(prn ::show-doc-panel show?)
+    (assoc db :doc-show? show?)))
+
+(reg-event-db
+  ::doc-text
+  (fn [db [_ text]]
+    ;(prn ::doc-text text)
+    (assoc db :doc-text text)))
+
 (reg-event-fx
   ::add-lib
   (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]
@@ -210,13 +227,15 @@
       (nth to-line)
       (subs 0 (inc to-ch))))
 
-(defn active-token
+(defn completion-token
+  "Given the form and change-data, find the token that is the target for completion"
   [form {:keys [text to-ch] :as change-data}]
-  (when (re-find #"\w+" (apply str text))
-    (let [token     (->> (changed-part-of-line form change-data)
-                         clojure.string/reverse
-                         (re-find #"\w+")
-                         clojure.string/reverse)
+  (when (re-find #"\w+" (apply str text))                   ; text may include spaces
+    (let [token     (->> change-data
+                         (changed-part-of-line form)
+                         clojure.string/reverse             ; reverse the line
+                         (re-find #"\w+")                   ; look backwards for the word
+                         clojure.string/reverse)            ; set everything back to normal
           token-len (count token)]
       (assoc change-data :token token
                          :token-len token-len
@@ -241,7 +260,7 @@
 (defn mark-completion-prefix
   [current-form change-data]
   (->> change-data
-       (active-token current-form)
+       (completion-token current-form)
        (prefixed-form current-form)))
 
 ;; Text

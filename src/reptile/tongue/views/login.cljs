@@ -13,9 +13,12 @@
    :border "1px solid #eee"
    :child [v-box
            :size "auto"
-           :gap "30px" :padding "10px"
+           :padding "10px"
            :children
-           [[title :label "Welcome to REPtiLe" :level :level2]
+           [[:img {:alt   "Welcome to reptile"
+                   :width "200px" :height "200px"
+                   :style {:object-position "center"}
+                   :src   "/images/reptile-logo-yellow-transparent.png"}]
             [v-box
              :gap "10px"
              :children
