@@ -16,9 +16,8 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared
 - [X] Parinfer integration
 - [X] Colorised edits / output
 - [X] Show matching / balancing parens
-- [ ] Code completion / suggestions 
-- [ ] Expose function documentation
-- [ ] Choice of editor key mappings
+- [X] Code completion / suggestions 
+- [X] Expose function documentation
 
 ### Clojure evaluation
 - [X] Shared REPL state
@@ -38,6 +37,7 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared
 - [X] Live reloadable server code
 
 ### User features under consideration post 1.0
+- [ ] Choice of editor key mappings
 - [ ] Per user name spaces
 - [ ] Automatic editor visibility based on activity
 - [ ] OpenID Connect Services eg GitHub
