@@ -9,7 +9,7 @@
     [reptile.tongue.code-mirror :as code-mirror]
     [reptile.tongue.views.eval :as eval-view]))
 
-(defonce other-editors-style {:padding "20px 20px 20px 20px"})
+(defonce other-editors-style {:padding "20px 20px 20px 10px"})
 
 (defn other-editor-did-mount
   [editor]

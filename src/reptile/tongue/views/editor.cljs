@@ -127,8 +127,8 @@
           [gap :size "10px"]
           [h-box :align :center :justify :start
            :children
-           [[:img {:alt "reptile - the shared REPL"
-                   :width "45px" :height "45px"
+           [[:img {:alt "reptile"
+                   :width "40px" :height "40px"
                    :src "/images/reptile-logo-gray-transparent.png"}]]]
           [gap :size "10px"]
           [h-box :align :center

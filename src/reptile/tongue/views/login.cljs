@@ -2,7 +2,7 @@
   (:require
     [reagent.core :as reagent]
     [re-frame.core :as re-frame]
-    [re-com.core :refer [v-box button gap border label input-text
+    [re-com.core :refer [h-box v-box button gap border label input-text
                          modal-panel title radio-button]]
     [reptile.tongue.events :as events]
     [reptile.tongue.subs :as subs]))
@@ -15,14 +15,12 @@
            :size "auto"
            :padding "10px"
            :children
-           [[:img {:alt   "Welcome to reptile"
-                   :width "200px" :height "200px"
-                   :style {:object-position "center"}
-                   :src   "/images/reptile-logo-yellow-transparent.png"}]
-            [v-box
+           [[v-box
              :gap "10px"
              :children
-             [[label :label "User name"]
+             [[title :label "Login to reptile" :level :level2]
+              [gap :size "30px"]
+              [label :label "User name"]
               [input-text
                :model (:user @form-data)
                :placeholder "Your name"
@@ -33,7 +31,15 @@
                :placeholder "The secret you know"
                :on-change #(swap! form-data assoc :secret %)]
               [gap :size "30px"]
-              [button :label "Access" :on-click process-ok]]]]]])
+              [h-box
+               :size "auto"
+               :children
+               [[button :label "Access" :class "btn-success"
+                 :on-click process-ok]
+                [gap :size "100px"]
+                [:img {:alt   "Welcome to reptile"
+                       :width "75px" :height "75px"
+                       :src   "/images/reptile-logo-yellow-transparent.png"}]]]]]]]])
 
 ; TODO - have a flag so that we only pre-fill secret in dev mode
 (defn authenticate
