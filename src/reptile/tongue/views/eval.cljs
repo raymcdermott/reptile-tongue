@@ -10,11 +10,12 @@
     [reptile.tongue.events :as events]
     [reptile.tongue.code-mirror :as code-mirror]))
 
+; padding order is: top right bottom left
 (defonce eval-panel-style (merge (flex-child-style "1")
                                  {:padding "5px 5px 5px 5px"}))
 
 (defonce eval-component-style (merge (flex-child-style "1")
-                                     {:padding "15px 5px 0px 5px"}))
+                                     {:padding "5px 5px 0px 5px"}))
 
 (defn eval-did-mount
   []

@@ -192,7 +192,7 @@
 (reg-event-db
   ::show-doc-panel
   (fn [db [_ show?]]
-    ;(prn ::show-doc-panel show?)
+    ;(prn ::show-doc-panel show? tag)
     (assoc db :doc-show? show?)))
 
 (reg-event-db

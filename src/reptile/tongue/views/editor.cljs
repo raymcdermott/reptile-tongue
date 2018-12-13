@@ -22,13 +22,6 @@
 (defonce eval-panel-style (merge (flex-child-style "1")
                                  default-style))
 
-(defonce doc-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
-                    :font-size   :small
-                    :padding     "5px 5px 5px 5px"})
-
-(defonce doc-panel-style (merge (flex-child-style "0 0 60px")
-                                doc-style))
-
 (defonce status-style (merge (dissoc default-style :border)
                              {:font-size   "10px"
                               :font-weight "lighter"
@@ -97,15 +90,33 @@
    :children
    (vec (map other-editor/min-panel network-repl-editors))])
 
+(def doc-scroll-height "300px")
+
+(defonce doc-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
+                    :position    "absolute"
+                    :z-index     100})
+
+(defonce doc-panel-style (merge (flex-child-style
+                                  (str "0 0 " doc-scroll-height))
+                                doc-style))
+
 (defn doc-panel
   []
-  (let [doc-text (subscribe [::subs/doc-text])]
+  (let [doc-text  (subscribe [::subs/doc-text])
+        doc-show? (subscribe [::subs/doc-show?])]
     (fn []
-      (when @doc-text
-        [scroller
-         :v-scroll :auto
-         :height "60px"
-         :child [p {:style {:z-index 20 :color :teal}} (:docs @doc-text)]]))))
+      (when (and @doc-show? @doc-text)
+        [h-box :width "100%"
+         :children
+         [[button :class "btn-warning btn-xs"
+           :label "Clear docs"
+           :on-click #(dispatch [::events/show-doc-panel false])]
+          [gap :size "20px"]
+          [scroller
+           :height doc-scroll-height
+           :child [p {:style {:color            "rgb(95, 95, 81)"
+                              :background-color "rgba(255, 255, 255, 0.9)"}}
+                   (:docs @doc-text)]]]]))))
 
 (defn main-panels
   [user-name]
@@ -127,9 +138,9 @@
           [gap :size "10px"]
           [h-box :align :center :justify :start
            :children
-           [[:img {:alt "reptile"
+           [[:img {:alt   "reptile"
                    :width "40px" :height "40px"
-                   :src "/images/reptile-logo-gray-transparent.png"}]]]
+                   :src   "/images/reptile-logo-gray-transparent.png"}]]]
           [gap :size "10px"]
           [h-box :align :center
            :children
@@ -144,7 +155,8 @@
          :panel-1 [editors-panel @local-repl-editor @network-repl-editors]
          :panel-2 [v-box :style eval-panel-style
                    :children
-                   [[h-box :style doc-panel-style :width "100%"
+                   [[h-box :style doc-panel-style
+                     :height doc-scroll-height :width "100%"
                      :children [[doc-panel]]]
                     [eval-view/eval-panel user-name]]]]
         [gap :size "10px"]
