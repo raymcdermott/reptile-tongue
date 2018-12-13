@@ -1,7 +1,8 @@
 (ns reptile.tongue.views.other-editor
   (:require
     [re-frame.core :as re-frame :refer [subscribe]]
-    [re-com.core :refer [box h-box v-box gap label md-icon-button slider]]
+    [re-com.core :refer [box h-box v-box gap label
+                         md-icon-button slider flex-child-style]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
     [reptile.tongue.subs :as subs]
@@ -65,6 +66,11 @@
      [[editor-activity editor-key network-repl-editor]
       [editor-icon editor-key network-repl-editor]]]))
 
+(defonce other-panel-style (merge (flex-child-style "1")
+                                 {:font-family "Menlo, Lucida Console, Monaco, monospace"
+                                  :border      "1px solid lightgrey"
+                                  :padding "5px 5px 5px 5px"}))
+
 ; TODO: BUG re-display the most recent form when the component is made visible
 ; use the inner / outer pattern from re-frame
 (defn network-editor-panel
@@ -74,7 +80,7 @@
      :children
      [[box :align :center :justify :center
        :child [editor-icon editor-key network-repl-editor]]
-      [v-box :size "auto" :style eval-view/eval-panel-style
+      [v-box :size "auto" :style other-panel-style
        :children
        [[other-component network-repl-editor]]]]]))
 
