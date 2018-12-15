@@ -39,46 +39,44 @@
       (rdr/read-string reader-opts val))
     (catch :default _ignore-reader-errors)))
 
+(def bugs "🐛 🐞 🐜\n")
+
 ;; TODO integrate a nice spec formatting library after 1.10 is GA
 (defn check-exception
   [val]
-  (let [{:keys [cause via trace data phase] :as exc} (read-exception val)
+  (let [{:keys [ cause via trace data phase] :as exc} (read-exception val)
         problems   (:clojure.spec.alpha/problems data)
         spec       (:clojure.spec.alpha/spec data)
         value      (:clojure.spec.alpha/value data)
         args       (:clojure.spec.alpha/args data)
         spec-fails (and problems (pred-fails problems))]
     (when-let [problem (or spec-fails cause)]
-      (str "💔\n" problem))))
+      (println :problem problem)
+      (str bugs problem))))
 
 (defn format-response
   [show-times? result]
-  (let [{:keys [val tag ms] :as x} result
+  (let [{:keys [val form tag ms]} result
         exception-data (check-exception val)]
     (cond
       exception-data
       (str "=> " exception-data "\n")
 
+      (= tag :err)
+      (str bugs val "\n")
+
       (= tag :out)
-      val
+      (str val)
 
       (= tag :ret)
-      (str (when show-times? (str ms " ms "))
-           "=> " (or val "nil") "\n"))))
-
-;; Demo of live changes
-;(defn format-responses
-;  [show-times? {:keys [form prepl-response live-repl]}]
-;  (str "POSTED Since Live? " (false? (nil? live-repl)) "\n"
-;       form "\n"
-;       (doall (apply str (map (partial format-response show-times?)
-;                              prepl-response)))))
+      (str form "\n"
+           (when show-times? (str ms " ms "))
+           "=> " (or val "nil") "\n\n"))))
 
 (defn format-responses
-  [show-times? {:keys [form prepl-response]}]
-  (str form "\n"
-       (doall (apply str (map (partial format-response show-times?)
-                              prepl-response)))))
+  [show-times? {:keys [prepl-response]}]
+  (doall (apply str (map (partial format-response show-times?)
+                            prepl-response))))
 
 (defn format-results
   [show-times? results]
@@ -143,28 +141,6 @@
                        (re-frame/dispatch [::logged-in-user (:user options)])
                        (js/alert "Login failed"))))))
 
-;(reg-event-fx
-;  ::document-hint
-;  (fn [{:keys [db]} [_ doc-symbol doc-ns]]
-;    (let [kw-sym (keyword (str doc-ns "-" doc-symbol))
-;          doc    (get-in db [:docs (keyword (str doc-ns "-" doc-symbol))])]
-;      (if doc
-;        (re-frame/dispatch [::found-doc {:doc-symbol doc-symbol :doc-ns doc-ns} doc])
-;        {:db        db
-;         ::doc-miss {:doc-symbol doc-symbol :doc-ns doc-ns}}))))
-;
-;(reg-fx
-;  ::doc-miss
-;  (fn [options]
-;    (ws/chsk-send! [:reptile/doc-hint options] (or timeout 3000)
-;                   (fn [doc]
-;                     (re-frame/dispatch [::found-doc options doc])))))
-;
-;(reg-event-db
-;  ::found-doc
-;  (fn [db [_ {:keys [doc-ns doc-symbol]} doc]]
-;    (assoc-in db [:docs (keyword (str doc-ns "-" doc-symbol))] doc)))
-
 (reg-event-fx
   ::login
   (fn [cofx [_ login-options]]
@@ -205,10 +181,10 @@
   ::add-lib
   (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]
     (let [use-ns   "(use 'clojure.tools.deps.alpha.repl)"
-          lib-spec (str "(add-lib '" (.trim name) " {"
+          lib-spec (str "(add-lib '" (string/trim name) " {"
                         (if maven
-                          (str ":mvn/version \"" (.trim version) "\"")
-                          (str ":git/url \"" (.trim url) "\" :sha \"" (.trim sha) "\""))
+                          (str ":mvn/version \"" (string/trim version) "\"")
+                          (str ":git/url \"" (string/trim url) "\" :sha \"" (string/trim sha) "\""))
                         "})")]
       {:db              (assoc (:db cofx) :proposed-lib lib)
        ::send-repl-eval [:system (str use-ns "\n" lib-spec)]})))

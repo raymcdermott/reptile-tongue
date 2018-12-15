@@ -78,7 +78,7 @@
   (when (and editor-key (true? (:visibility network-repl-editor)))
     [h-box :size "auto"
      :children
-     [[box :align :center :justify :center
+     [[box :align :center :justify :center :width "30px"
        :child [editor-icon editor-key network-repl-editor]]
       [v-box :size "auto" :style other-panel-style
        :children

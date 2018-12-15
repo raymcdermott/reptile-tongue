@@ -78,11 +78,14 @@
 
 (defn editors-panel
   [local-repl-editor network-repl-editors]
-  [v-box :size "auto"
-   :children
-   [(when (not (empty? network-repl-editors))
-      [other-editor/other-panels network-repl-editors])
-    [edit-panel local-repl-editor]]])
+  (let [visible-count (some->> network-repl-editors
+                               (filter (fn [[_ val]] (:visibility val)))
+                               count)]
+    [v-box :size "auto"
+     :children
+     [(when (and visible-count (> visible-count 0))
+        [other-editor/other-panels network-repl-editors])
+      [edit-panel local-repl-editor (count network-repl-editors)]]]))
 
 (defn other-editor-row
   [network-repl-editors]
