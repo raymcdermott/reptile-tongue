@@ -1,7 +1,8 @@
 (ns reptile.tongue.views.other-editor
   (:require
     [re-frame.core :as re-frame :refer [subscribe]]
-    [re-com.core :refer [box h-box v-box gap label md-icon-button slider]]
+    [re-com.core :refer [box h-box v-box gap label
+                         md-icon-button slider flex-child-style]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
     [reptile.tongue.subs :as subs]
@@ -9,7 +10,7 @@
     [reptile.tongue.code-mirror :as code-mirror]
     [reptile.tongue.views.eval :as eval-view]))
 
-(defonce other-editors-style {:padding "20px 20px 20px 20px"})
+(defonce other-editors-style {:padding "20px 20px 20px 10px"})
 
 (defn other-editor-did-mount
   [editor]
@@ -42,10 +43,11 @@
         active              (:active network-repl-editor)
         inactivity-duration (- now last-active)]
     ;TODO: BUG editor is being counted as active when they are NOT typing
-    (println :last-active last-active :inactivity-duration inactivity-duration :now now)
+    ;(println :last-active last-active :inactivity-duration inactivity-duration :now now)
     [md-icon-button
-     :tooltip (str "Last coding " inactivity-duration " seconds ago")
-     :md-icon-name "zmdi-keyboard"
+     :tooltip "Click to show / hide"
+     :md-icon-name (str "zmdi-eye" (if (:visibility network-repl-editor) "-off"))
+     :size :smaller
      :style (if (> 30000 inactivity-duration) (:style network-repl-editor) {:color "lightgray"})
      :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])]))
 
@@ -65,18 +67,18 @@
      [[editor-activity editor-key network-repl-editor]
       [editor-icon editor-key network-repl-editor]]]))
 
+(defonce other-panel-style (merge (flex-child-style "1")
+                                 {:font-family "Menlo, Lucida Console, Monaco, monospace"
+                                  :border      "1px solid lightgrey"
+                                  :padding "5px 5px 5px 5px"}))
+
 ; TODO: BUG re-display the most recent form when the component is made visible
 ; use the inner / outer pattern from re-frame
 (defn network-editor-panel
   [[editor-key network-repl-editor]]
   (when (and editor-key (true? (:visibility network-repl-editor)))
-    [h-box :size "auto"
-     :children
-     [[box :align :center :justify :center
-       :child [editor-icon editor-key network-repl-editor]]
-      [v-box :size "auto" :style eval-view/eval-panel-style
-       :children
-       [[other-component network-repl-editor]]]]]))
+    [box :size "auto" :style other-panel-style
+     :child [other-component network-repl-editor]]))
 
 (defn other-panels
   [network-repl-editors]

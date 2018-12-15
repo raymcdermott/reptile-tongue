@@ -38,6 +38,11 @@
     (:current-form db)))
 
 (reg-sub
+  ::completions
+  (fn [db]
+    (get-in db [:local-repl-editor :completions])))
+
+(reg-sub
   ::local-repl-editor
   (fn [db]
     (:local-repl-editor db)))
@@ -77,5 +82,21 @@
   ::network-repl-editor-keys
   (fn [db]
     (keys (:network-repl-editors db))))
+
+(reg-sub
+  ::show-add-lib-panel
+  (fn [db]
+    (:show-add-lib-panel db)))
+
+(reg-sub
+  ::doc-show?
+  (fn [db]
+    (:doc-show? db)))
+
+(reg-sub
+  ::doc-text
+  (fn [db]
+    (:doc-text db)))
+
 
 

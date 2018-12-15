@@ -21,10 +21,13 @@
         network-style  {:color (if network-status "rgba(127, 191, 63, 0.32)" "red")}]
     [v-box :children
      [[line]
-      [h-box :size "20px" :style status-style :gap "20px" :align :center :children
+      [h-box :size "20px" :style status-style :align :center :children
        [[label :label (str "Login: " user-name)]
-        [line]
+        [gap :size "50px"]
         [label :style network-style :label "Connect Status:"]
-        (if network-status
-          [md-icon-button :md-icon-name "zmdi-cloud-done" :size :smaller :style network-style]
-          [md-icon-button :md-icon-name "zmdi-cloud-off" :size :smaller :style network-style])]]]]))
+        [gap :size "10px"]
+        (let [icon-suffix (if network-status "-done" "-off")]
+          [md-icon-button :md-icon-name (str "zmdi-cloud" icon-suffix) :size :smaller :style network-style])
+        [gap :size "50px"]
+        ;; Allow autocomplete max (all plus docs) | high (only fns + docs) | low (only fns) | off
+        [label :style network-style :label "Autocomplete: on (max)"]]]]]))

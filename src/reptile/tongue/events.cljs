@@ -1,12 +1,12 @@
 (ns reptile.tongue.events
   (:require
     goog.date.Date
-    [cljs.core.specs.alpha]
     [re-frame.core :as re-frame :refer [reg-event-db reg-event-fx reg-fx]]
     [cljs.tools.reader.edn :as rdr]
-    [cljs.core.async]
+    [clojure.core.async]
+    [clojure.string :as string]
+    [reptile.tongue.helpers :refer [js->cljs]]
     [reptile.tongue.ws :as ws]
-    [clojure.string :as str]
     [reptile.tongue.db :as db]
     [reptile.tongue.code-mirror :as code-mirror]))
 
@@ -28,54 +28,55 @@
            (interpose "\n")
            (apply str)))
 
-(defn format-nil-vals
-  [val]
-  (if (nil? val) "nil" val))
-
 (defn default-reptile-tag-reader
   [tag val]
   {:nk-tag tag :nk-val (rdr/read-string (str val))})
 
+(defn read-exception
+  [val]
+  (try
+    (let [reader-opts {:default default-reptile-tag-reader}]
+      (rdr/read-string reader-opts val))
+    (catch :default _ignore-reader-errors)))
+
+(def bugs "🐛 🐞 🐜\n")
+
+;; TODO integrate a nice spec formatting library after 1.10 is GA
 (defn check-exception
   [val]
-  (when (str/starts-with? val "{:cause")
-    (let [reader-opts {:default default-reptile-tag-reader}
-          {:keys [cause via trace data]} (rdr/read-string reader-opts val)
-          problems    (:clojure.spec.alpha/problems data)
-          spec        (:clojure.spec.alpha/spec data)
-          value       (:clojure.spec.alpha/value data)
-          args        (:clojure.spec.alpha/args data)
-          spec-fails  (pred-fails problems)]
-      (str "🤕 💔 \n" (or spec-fails cause)))))
+  (let [{:keys [ cause via trace data phase] :as exc} (read-exception val)
+        problems   (:clojure.spec.alpha/problems data)
+        spec       (:clojure.spec.alpha/spec data)
+        value      (:clojure.spec.alpha/value data)
+        args       (:clojure.spec.alpha/args data)
+        spec-fails (and problems (pred-fails problems))]
+    (when-let [problem (or spec-fails cause)]
+      (println :problem problem)
+      (str bugs problem))))
 
 (defn format-response
   [show-times? result]
-  (let [{:keys [val tag ms]} result
+  (let [{:keys [val form tag ms]} result
         exception-data (check-exception val)]
     (cond
       exception-data
       (str "=> " exception-data "\n")
 
+      (= tag :err)
+      (str bugs val "\n")
+
       (= tag :out)
-      val
+      (str val)
 
       (= tag :ret)
-      (str (when show-times? (str ms " ms "))
-           "=> " (format-nil-vals val) "\n"))))
-
-;; Demo of live changes
-;(defn format-responses
-;  [show-times? {:keys [form prepl-response live-repl]}]
-;  (str "POSTED Since Live? " (false? (nil? live-repl)) "\n"
-;       form "\n"
-;       (doall (apply str (map (partial format-response show-times?)
-;                              prepl-response)))))
+      (str form "\n"
+           (when show-times? (str ms " ms "))
+           "=> " (or val "nil") "\n\n"))))
 
 (defn format-responses
-  [show-times? {:keys [form prepl-response]}]
-  (str form "\n"
-       (doall (apply str (map (partial format-response show-times?)
-                              prepl-response)))))
+  [show-times? {:keys [prepl-response]}]
+  (doall (apply str (map (partial format-response show-times?)
+                            prepl-response))))
 
 (defn format-results
   [show-times? results]
@@ -88,7 +89,6 @@
       {:db                                 (assoc db :eval-results [])
        ::code-mirror/set-code-mirror-value {:value       ""
                                             :code-mirror code-mirror}})))
-
 (reg-event-fx
   ::eval-result
   (fn [{:keys [db]} [_ eval-result]]
@@ -100,7 +100,6 @@
       {:db                                 (assoc db :eval-results eval-results)
        ::code-mirror/set-code-mirror-value {:value       str-results
                                             :code-mirror code-mirror}})))
-
 (reg-event-fx
   ::show-times
   (fn [{:keys [db]} [_ show-times]]
@@ -112,7 +111,6 @@
       {:db                                 (assoc db :show-times show-times)
        ::code-mirror/set-code-mirror-value {:value       str-results
                                             :code-mirror code-mirror}})))
-
 (reg-event-db
   ::eval-code-mirror
   (fn [db [_ code-mirror]]
@@ -121,7 +119,7 @@
 (reg-fx
   ::send-repl-eval
   (fn [[source form]]
-    (when-not (str/blank? form)
+    (when-not (string/blank? form)
       (ws/chsk-send! [:reptile/repl {:form   form
                                      :source source
                                      :forms  form}]
@@ -162,14 +160,31 @@
     {:db             (dissoc db :local-repl-editor :user)
      ::server-logout {:options (:name (:local-repl-editor db))}}))
 
+(reg-event-db
+  ::show-add-lib-panel
+  (fn [db [_ show?]]
+    (assoc db :show-add-lib-panel show?)))
+
+(reg-event-db
+  ::show-doc-panel
+  (fn [db [_ show?]]
+    ;(prn ::show-doc-panel show? tag)
+    (assoc db :doc-show? show?)))
+
+(reg-event-db
+  ::doc-text
+  (fn [db [_ text]]
+    ;(prn ::doc-text text)
+    (assoc db :doc-text text)))
+
 (reg-event-fx
   ::add-lib
   (fn [cofx [_ {:keys [name version url sha maven] :as lib}]]
     (let [use-ns   "(use 'clojure.tools.deps.alpha.repl)"
-          lib-spec (str "(add-lib '" (.trim name) " {"
+          lib-spec (str "(add-lib '" (string/trim name) " {"
                         (if maven
-                          (str ":mvn/version \"" (.trim version) "\"")
-                          (str ":git/url \"" (.trim url) "\" :sha \"" (.trim sha) "\""))
+                          (str ":mvn/version \"" (string/trim version) "\"")
+                          (str ":git/url \"" (string/trim url) "\" :sha \"" (string/trim sha) "\""))
                         "})")]
       {:db              (assoc (:db cofx) :proposed-lib lib)
        ::send-repl-eval [:system (str use-ns "\n" lib-spec)]})))
@@ -179,24 +194,113 @@
 
 ;; ---------------------- Network sync
 
+(defn changed-part-of-line
+  "Returns the substring up to the char that is changed
+  on the changed line from within `form`"
+  [form {:keys [to-line to-ch] :as change-data}]
+  (-> form
+      string/split-lines
+      (nth to-line)
+      (subs 0 (inc to-ch))))
+
+(defn completion-token
+  "Given the form and change-data, find the token that is the target for completion"
+  [form {:keys [text to-ch] :as change-data}]
+  (when (re-find #"\w+" (apply str text))                   ; text may include spaces
+    (let [token     (->> change-data
+                         (changed-part-of-line form)
+                         clojure.string/reverse             ; reverse the line
+                         (re-find #"\w+")                   ; look backwards for the word
+                         clojure.string/reverse)            ; set everything back to normal
+          token-len (count token)]
+      (assoc change-data :token token
+                         :token-len token-len
+                         :token-start (- (inc to-ch) token-len)))))
+
+(defn prefixed-form
+  [form {:keys [to-line token token-start] :as change-data}]
+  (let [form-lines    (string/split-lines form)
+        line-to-edit  (nth form-lines to-line)
+        prefix-line   (str (subs line-to-edit 0 token-start)
+                           (-> line-to-edit
+                               (subs token-start)
+                               (string/replace-first token "__prefix__")))
+        prefixed-form (->> (conj (drop (inc to-line) form-lines)
+                                 prefix-line
+                                 (take to-line form-lines))
+                           flatten
+                           (interpose "\n")
+                           string/join)]
+    (assoc change-data :prefixed-form prefixed-form)))
+
+(defn mark-completion-prefix
+  [current-form change-data]
+  (->> change-data
+       (completion-token current-form)
+       (prefixed-form current-form)))
+
 ;; Text
 (reg-fx
   ::sync-current-form
-  (fn [{:keys [form name timeout]}]
-    (ws/chsk-send! [:reptile/keystrokes {:form      form
-                                         :user-name name}]
+  (fn [[{:keys [form name timeout]} prefixed-form to-complete]]
+    (ws/chsk-send! [:reptile/keystrokes {:form          form
+                                         :prefixed-form prefixed-form
+                                         :to-complete   to-complete
+                                         :user-name     name}]
                    (or timeout 3000))))
+
+(defn change->data
+  [{:keys [from to origin] :as change-data}]
+  (assoc change-data :from-line (.-line from)
+                     :from-ch (.-ch from)
+                     :to-line (.-line to)
+                     :to-ch (.-ch to)
+                     :source (if (= origin "+input") :user :api)))
 
 (reg-event-fx
   ::current-form
-  (fn [{:keys [db]} [_ current-form]]
-    (when-not (str/blank? (str/trim current-form))
+  (fn [{:keys [db]} [_ current-form change-object]]
+    (when-not (string/blank? (string/trim current-form))
       (let [local-repl-editor   (:local-repl-editor db)
+            change-data         (change->data (js->cljs change-object))
+            {:keys [token prefixed-form]} (mark-completion-prefix current-form change-data)
             updated-repl-editor (assoc local-repl-editor :form current-form)]
         {:db                 (assoc db :local-repl-editor updated-repl-editor
-                                       :current-form current-form)
-         ::sync-current-form updated-repl-editor}))))
+                                       :current-form current-form
+                                       :change-data change-data
+                                       :to-complete token)
+         ::sync-current-form [updated-repl-editor prefixed-form token]}))))
 
+;; favour code-mirror hints
+(reg-event-db
+  ::current-word
+  (fn [db [_ change-data]]
+
+    ;; TODO - work out the completions
+
+    ;; conj the texts until non [a-z-]
+    ;; check for completions on each keystroke
+    ;; something like
+    ;; (def core-ns (map first (ns-publics 'clojure.core)))
+    ;; (sort (filter #(clojure.string/starts-with? % "re-") core-ns))
+    ;; set completions on the db
+    ;; unset completions when not core letter
+
+    ;; The server should include current ns defs on each call
+    ;; a bit wasteful but there are rarely going to be > 10
+    ;; and we can optimise down the line
+
+    ;; any newly included namespaces should be tracked for inclusion
+    ;; in the list. This could make the payload bigger so maybe we do maintain
+    ;; another atom / transmission route
+
+    ;; then combine defs from the user ns with the clojure.core
+
+    (assoc db :current-word change-data)
+
+    )
+
+  )
 ;; ------------------------------------------------------------------
 
 ;; ---------------------- Editor default data
@@ -328,8 +432,15 @@
 ;; Obtain an updated form from a network user
 (reg-event-fx
   ::network-repl-editor-form-update
-  (fn [{:keys [db]} [_ {:keys [user form]}]]
-    (when-not (= user (:user db))
+  (fn [{:keys [db]} [_ {:keys [user form completions]}]]
+    (if (= user (:user db))
+      (let [editor           (:local-repl-editor db)
+            with-completions (assoc editor :completions completions
+                                           :change-data (:change-data db)
+                                           :to-complete (:to-complete db))]
+        ;(println ::network-repl-editor-form-update (:change-data db))
+        {:db                         (assoc db :local-repl-editor with-completions)
+         ::code-mirror/auto-complete with-completions})
       (let [editor-key           (keyword user)
             network-repl-editors (:network-repl-editors db)
             network-repl-editor  (get network-repl-editors editor-key)
