@@ -22,6 +22,12 @@
 (defonce eval-panel-style (merge (flex-child-style "1")
                                  default-style))
 
+(defonce editor-action-style {:border  "1px solid lightgrey"
+                              :padding "5px 5px 5px 5px"})
+
+(defonce action-panel-style (merge (flex-child-style "1")
+                                   editor-action-style))
+
 (defonce status-style (merge (dissoc default-style :border)
                              {:font-size   "10px"
                               :font-weight "lighter"
@@ -59,14 +65,35 @@
      :component-did-update #(-> nil)                        ; noop to prevent reload
      :display-name         "local-editor"}))
 
+(defn editor-actions
+  []
+  [h-box :gap "10px"
+   :children
+   [[md-icon-button
+     :tooltip "Backwards through edit history"
+     :md-icon-name "zmdi-arrow-left"
+     :size :smaller]
+    [md-icon-button
+     :tooltip "Forwards through edit history"
+     :md-icon-name "zmdi-arrow-right"
+     :size :smaller]
+    [md-icon-button
+     :tooltip "Search edit history"
+     :md-icon-name "zmdi-search"
+     :size :smaller]
+    [md-icon-button
+     :tooltip "Show / hide evaluation times"
+     :md-icon-name "zmdi-timer"
+     :size :smaller]]])
+
 (defn edit-panel
   [local-repl-editor]
   (let [current-form (subscribe [::subs/current-form])]
     (fn []
       [v-box :size "auto"
        :children
-       [[box :size "auto" :style eval-panel-style :child
-         [edit-component (:name local-repl-editor)]]
+       [[box :size "auto" :style eval-panel-style
+         :child [edit-component (:name local-repl-editor)]]
         [gap :size "5px"]
         [h-box :align :center
          :children
@@ -74,7 +101,8 @@
            :label "Eval (or Cmd-Enter)" :tooltip "Send the form(s) for evaluation"
            :class "btn-success"
            :on-click #(dispatch [::events/eval @current-form])]
-          [gap :size "20px"]]]]])))
+          [gap :size "20px"]
+          [editor-actions]]]]])))
 
 (defn editors-panel
   [local-repl-editor network-repl-editors]
@@ -158,7 +186,7 @@
          :panel-1 [editors-panel @local-repl-editor @network-repl-editors]
          :panel-2 [v-box :style eval-panel-style
                    :children
-                   [[h-box :style doc-panel-style
+                   [#_[h-box :style doc-panel-style
                      :height doc-scroll-height :width "100%"
                      :children [[doc-panel]]]
                     [eval-view/eval-panel user-name]]]]

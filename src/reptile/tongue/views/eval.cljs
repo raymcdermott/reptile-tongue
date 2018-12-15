@@ -39,26 +39,5 @@
 
 (defn eval-panel
   [panel-name]
-  (let [show-times? (reagent/atom false)]
-    [v-box :size "auto" :style eval-panel-style
-     :children
-     [[h-box :align :center :justify :end :gap "20px" :height "20px"
-       :children
-       [[md-icon-button
-         :tooltip "Show evaluation times"
-         :size :smaller
-         :md-icon-name "zmdi-timer"
-         :style {:color (if @show-times? "red" "black")}
-         :on-click #(do (reset! show-times? (false? @show-times?))
-                        (re-frame/dispatch [::events/show-times @show-times?]))]
-        [md-icon-button
-         :tooltip "Clear evaluations"
-         :size :smaller
-         :md-icon-name "zmdi-delete"
-         :on-click #(re-frame/dispatch [::events/clear-evals])]
-        [md-icon-button
-         :tooltip "Wrap text (default ON)"
-         :size :smaller
-         :md-icon-name "zmdi-wrap-text"]]]
-      [box :size "auto" :style eval-component-style
-       :child [eval-component panel-name]]]]))
+  [box :size "auto" :style eval-component-style
+   :child [eval-component panel-name]])

@@ -45,8 +45,9 @@
     ;TODO: BUG editor is being counted as active when they are NOT typing
     ;(println :last-active last-active :inactivity-duration inactivity-duration :now now)
     [md-icon-button
-     :tooltip (str "Last coding " inactivity-duration " seconds ago")
-     :md-icon-name "zmdi-keyboard"
+     :tooltip "Click to show / hide"
+     :md-icon-name (str "zmdi-eye" (if (:visibility network-repl-editor) "-off"))
+     :size :smaller
      :style (if (> 30000 inactivity-duration) (:style network-repl-editor) {:color "lightgray"})
      :on-click #(re-frame/dispatch [::events/network-user-visibility-toggle editor-key])]))
 
@@ -76,13 +77,8 @@
 (defn network-editor-panel
   [[editor-key network-repl-editor]]
   (when (and editor-key (true? (:visibility network-repl-editor)))
-    [h-box :size "auto"
-     :children
-     [[box :align :center :justify :center :width "30px"
-       :child [editor-icon editor-key network-repl-editor]]
-      [v-box :size "auto" :style other-panel-style
-       :children
-       [[other-component network-repl-editor]]]]]))
+    [box :size "auto" :style other-panel-style
+     :child [other-component network-repl-editor]]))
 
 (defn other-panels
   [network-repl-editors]
