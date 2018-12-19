@@ -8,9 +8,16 @@
     (get-in db [:current-forms user])))
 
 (reg-sub
-  ::form-from-history
+  ::history
   (fn [db]
-    (:form-from-history db)))
+    (:history db)))
+
+(reg-sub
+  ::history-item
+  (fn [db]
+    (let [history (:history db)
+          current (or (:history-item db) 0)]
+      (nth history current))))
 
 (reg-sub
   ::eval-results

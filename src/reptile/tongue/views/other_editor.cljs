@@ -68,9 +68,10 @@
       [editor-icon editor-key network-repl-editor]]]))
 
 (defonce other-panel-style (merge (flex-child-style "1")
-                                 {:font-family "Menlo, Lucida Console, Monaco, monospace"
-                                  :border      "1px solid lightgrey"
-                                  :padding "5px 5px 5px 5px"}))
+                                  {:font-family   "Menlo, Lucida Console, Monaco, monospace"
+                                   :border-radius "8px"
+                                   :border        "1px solid lightgrey"
+                                   :padding       "5px 5px 5px 5px"}))
 
 ; TODO: BUG re-display the most recent form when the component is made visible
 ; use the inner / outer pattern from re-frame
@@ -82,6 +83,6 @@
 
 (defn other-panels
   [network-repl-editors]
-  [v-box :size "auto"
+  [v-box :gap "2px" :size "auto"
    :children
    (vec (map #(network-editor-panel %) network-repl-editors))])
