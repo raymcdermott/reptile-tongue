@@ -23,9 +23,15 @@
                                  default-style))
 
 (defonce edit-style (assoc default-style :border "1px solid lightgrey"))
+(defonce edit-panel-style (merge (flex-child-style "1") edit-style))
 
-(defonce edit-panel-style (merge (flex-child-style "1")
-                                 edit-style))
+(defonce history-button-style (assoc default-style
+                                :padding "0px 0px 0px 0px"
+                                :background-color "lightgrey"
+                                :border "1px solid lightgrey"))
+
+(defonce history-buttons-style (merge (flex-child-style "1")
+                                      history-button-style))
 
 (defonce status-style (merge (dissoc default-style :border)
                              {:font-size   "10px"
@@ -40,10 +46,9 @@
   []
   (fn [this-textarea]
     (let [node            (reagent/dom-node this-textarea)
-          extra-edit-keys {:Ctrl-Space code-mirror/trigger-autocomplete
-                           :Cmd-Enter  (fn [cm]
-                                         (dispatch
-                                           [::events/eval (.getValue cm)]))}
+          extra-edit-keys {:Cmd-Enter (fn [cm]
+                                        (dispatch
+                                          [::events/eval (.getValue cm)]))}
           options         {:options {:lineWrapping  true
                                      :autofocus     true
                                      :matchBrackets true
@@ -64,21 +69,64 @@
      :component-did-update #(-> nil)                        ; noop to prevent reload
      :display-name         "local-editor"}))
 
+;; need to coalesce next / previous code ...
+;; way too much duplication
+(defn history-previous-component
+  [history-item]
+  (let [{:keys [index]} history-item]
+    [md-icon-button
+     :tooltip "Previous item from history"
+     :tooltip-position :above-center
+     :md-icon-name "zmdi-chevron-left"
+     :on-click #(dispatch [::events/from-history (dec index)])]))
+
+(defn history-next-component
+  [history-item]
+  (let [{:keys [index]} history-item]
+    [md-icon-button
+     :tooltip "Next item from history"
+     :tooltip-position :above-center
+     :md-icon-name "zmdi-chevron-right"
+     :on-click #(dispatch [::events/from-history (inc index)])]))
+
+(defn completions-component
+  []
+  [label
+   :style {:color "lightgray"}
+   :label ""])
 
 (defn edit-panel
   [local-repl-editor]
-  (let [current-form (subscribe [::subs/current-form])]
+  (let [current-form (subscribe [::subs/current-form])
+        history-item (subscribe [::subs/history-item])]
     (fn []
-      [v-box :size "auto"
-       :children
-       [[box :size "auto" :style edit-panel-style
-         :child [edit-component (:name local-repl-editor)]]
-        [gap :size "5px"]
-        [button
-         :label "Eval (or Cmd-Enter)"
-         :tooltip "Send the form(s) for evaluation"
-         :class "btn-success"
-         :on-click #(dispatch [::events/eval @current-form])]]])))
+      (let [editor-name (:name local-repl-editor)]
+        [v-box :size "auto"
+         :children
+         [[h-box :width "auto"
+           :children
+           [[box :justify :center
+             :style history-buttons-style
+             :child [history-previous-component @history-item]]
+            [box :justify :center
+             :style history-buttons-style
+             :child [history-next-component @history-item]]]]
+          [box :size "auto"
+           :style edit-panel-style
+           :child [edit-component editor-name]]
+          [gap :size "5px"]
+          [h-box
+           :children
+           [[button
+             :label "Eval (or Cmd-Enter)"
+             :tooltip "Send the form(s) for evaluation"
+             :class "btn-success"
+             :on-click #(dispatch [::events/eval @current-form])]
+            [gap :size "5px"]
+            ;; Only show if completions available
+            (when (= 1 0)
+              [box :size "auto" :style edit-panel-style
+               :child [completions-component]])]]]]))))
 
 (defn editors-panel
   [local-repl-editor network-repl-editors]
@@ -104,7 +152,7 @@
         local-repl-editor    (subscribe [::subs/local-repl-editor])]
     (fn []
       [v-box :style {:position "absolute"
-                     :top      "5px"
+                     :top      "0px"
                      :bottom   "0px"
                      :width    "100%"}
        :children

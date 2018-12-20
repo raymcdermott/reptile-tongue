@@ -15,9 +15,7 @@
 (reg-sub
   ::history-item
   (fn [db]
-    (let [history (:history db)
-          current (or (:history-item db) 0)]
-      (nth history current))))
+    (:history-item db)))
 
 (reg-sub
   ::eval-results

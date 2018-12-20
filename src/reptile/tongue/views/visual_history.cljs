@@ -46,8 +46,7 @@
      [[md-icon-button
        :md-icon-name "zmdi-caret-left-circle"
        :tooltip "Send to the editor"
-       :on-click #(re-frame/dispatch
-                    [::events/from-history index])]
+       :on-click #(re-frame/dispatch [::events/from-history index])]
       [input-text
        :input-type :textarea
        :model history
@@ -69,9 +68,7 @@
      :child
      [v-box :size "auto"
       :children
-      [(doall
-         (reverse
-           (map history-item-component history)))]]]]])
+      [(doall (reverse (map history-item-component history)))]]]]])
 
 (defn browse-history
   []

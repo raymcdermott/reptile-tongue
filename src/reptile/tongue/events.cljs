@@ -398,10 +398,12 @@
   (fn [{:keys [db]} [_ index]]
     (let [local-repl-editor   (:local-repl-editor db)
           history             (:history db)
-          history-form        (->> index (nth history) :history)
+          history-item        (nth history index)
+          history-form        (:history history-item)
           updated-repl-editor (assoc local-repl-editor :form history-form)]
       {:db                            (assoc db :local-repl-editor updated-repl-editor
-                                                :current-form history-form)
+                                                :current-form history-form
+                                                :history-item history-item)
        ::code-mirror/sync-code-mirror updated-repl-editor})))
 
 ;; ---------------------- Logged in network user
