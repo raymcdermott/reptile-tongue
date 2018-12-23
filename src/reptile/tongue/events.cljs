@@ -44,7 +44,7 @@
 ;; TODO integrate a nice spec formatting library after 1.10 is GA
 (defn check-exception
   [val]
-  (let [{:keys [ cause via trace data phase] :as exc} (read-exception val)
+  (let [{:keys [cause via trace data phase] :as exc} (read-exception val)
         problems   (:clojure.spec.alpha/problems data)
         spec       (:clojure.spec.alpha/spec data)
         value      (:clojure.spec.alpha/value data)
@@ -60,10 +60,12 @@
         exception-data (check-exception val)]
     (cond
       exception-data
-      (str "=> " exception-data "\n")
+      (str form "\n"
+           "=> " exception-data "\n\n")
 
       (= tag :err)
-      (str bugs val "\n")
+      (str form "\n"
+           bugs val "\n\n")
 
       (= tag :out)
       (str val)
@@ -76,7 +78,7 @@
 (defn format-responses
   [show-times? {:keys [prepl-response]}]
   (doall (apply str (map (partial format-response show-times?)
-                            prepl-response))))
+                         prepl-response))))
 
 (defn format-results
   [show-times? results]
@@ -95,11 +97,22 @@
     (let [code-mirror  (:eval-code-mirror db)
           show-times?  (true? (:show-times db))
           eval-results (conj (:eval-results db) eval-result)
+          history      (let [evals (->> eval-results (map :form) distinct)]
+                         (map (fn [h n]
+                                {:index n :history h})
+                              (reverse evals) (range)))
           str-results  (apply str (reverse
                                     (format-results show-times? eval-results)))]
-      {:db                                 (assoc db :eval-results eval-results)
+      {:db                                 (assoc db :eval-results eval-results
+                                                     :history history)
        ::code-mirror/set-code-mirror-value {:value       str-results
                                             :code-mirror code-mirror}})))
+
+(reg-event-db
+  ::history-item
+  (fn [db [_ index]]
+    (assoc db :history-item index)))
+
 (reg-event-fx
   ::show-times
   (fn [{:keys [db]} [_ show-times]]
@@ -111,6 +124,7 @@
       {:db                                 (assoc db :show-times show-times)
        ::code-mirror/set-code-mirror-value {:value       str-results
                                             :code-mirror code-mirror}})))
+
 (reg-event-db
   ::eval-code-mirror
   (fn [db [_ code-mirror]]
@@ -381,11 +395,15 @@
 
 (reg-event-fx
   ::from-history
-  (fn [{:keys [db]} [_ history-form]]
+  (fn [{:keys [db]} [_ index]]
     (let [local-repl-editor   (:local-repl-editor db)
+          history             (:history db)
+          history-item        (nth history index)
+          history-form        (:history history-item)
           updated-repl-editor (assoc local-repl-editor :form history-form)]
       {:db                            (assoc db :local-repl-editor updated-repl-editor
-                                                :current-form history-form)
+                                                :current-form history-form
+                                                :history-item history-item)
        ::code-mirror/sync-code-mirror updated-repl-editor})))
 
 ;; ---------------------- Logged in network user

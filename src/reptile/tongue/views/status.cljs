@@ -30,4 +30,6 @@
           [md-icon-button :md-icon-name (str "zmdi-cloud" icon-suffix) :size :smaller :style network-style])
         [gap :size "50px"]
         ;; Allow autocomplete max (all plus docs) | high (only fns + docs) | low (only fns) | off
-        [label :style network-style :label "Autocomplete: on (max)"]]]]]))
+        [label :style network-style :label "Autocomplete: on (max)"]
+        [gap :size "50px"]
+        [label :style network-style :label "Font size: Large"]]]]]))

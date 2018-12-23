@@ -1,9 +1,9 @@
 (ns reptile.tongue.views.editor
   (:require
     [re-frame.core :refer [subscribe dispatch]]
-    [re-com.core :refer [h-box v-box box button gap line scroller border label input-text
-                         md-circle-icon-button md-icon-button input-textarea h-split v-split
-                         title flex-child-style p slider]]
+    [re-com.core :refer [h-box v-box box button gap line scroller border label input-text md-circle-icon-button
+                         md-icon-button input-textarea h-split v-split popover-anchor-wrapper
+                         popover-content-wrapper title flex-child-style p slider]]
     [re-com.splits :refer [hv-split-args-desc]]
     [reagent.core :as reagent]
     [reptile.tongue.code-mirror :as code-mirror]
@@ -12,21 +12,26 @@
     [reptile.tongue.views.other-editor :as other-editor]
     [reptile.tongue.views.add-lib :as add-lib]
     [reptile.tongue.views.eval :as eval-view]
-    [reptile.tongue.views.visual-history :as visual-history]
     [reptile.tongue.views.status :as status]))
 
-(defonce default-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
-                        :border      "1px solid lightgrey"
-                        :padding     "5px 5px 5px 5px"})
+(defonce default-style {:font-family   "Menlo, Lucida Console, Monaco, monospace"
+                        :border-radius "8px"
+                        :border        "1px solid lightgrey"
+                        :padding       "5px 5px 5px 5px"})
 
 (defonce eval-panel-style (merge (flex-child-style "1")
                                  default-style))
 
-(defonce editor-action-style {:border  "1px solid lightgrey"
-                              :padding "5px 5px 5px 5px"})
+(defonce edit-style (assoc default-style :border "1px solid lightgrey"))
+(defonce edit-panel-style (merge (flex-child-style "1") edit-style))
 
-(defonce action-panel-style (merge (flex-child-style "1")
-                                   editor-action-style))
+(defonce history-button-style (assoc default-style
+                                :padding "0px 0px 0px 0px"
+                                :background-color "lightgrey"
+                                :border "1px solid lightgrey"))
+
+(defonce history-buttons-style (merge (flex-child-style "1")
+                                      history-button-style))
 
 (defonce status-style (merge (dissoc default-style :border)
                              {:font-size   "10px"
@@ -41,10 +46,9 @@
   []
   (fn [this-textarea]
     (let [node            (reagent/dom-node this-textarea)
-          extra-edit-keys {:Ctrl-Space code-mirror/trigger-autocomplete
-                           :Cmd-Enter  (fn [cm]
-                                         (dispatch
-                                           [::events/eval (.getValue cm)]))}
+          extra-edit-keys {:Cmd-Enter (fn [cm]
+                                        (dispatch
+                                          [::events/eval (.getValue cm)]))}
           options         {:options {:lineWrapping  true
                                      :autofocus     true
                                      :matchBrackets true
@@ -65,51 +69,71 @@
      :component-did-update #(-> nil)                        ; noop to prevent reload
      :display-name         "local-editor"}))
 
-(defn editor-actions
+;; need to coalesce next / previous code ...
+;; way too much duplication
+(defn history-previous-component
+  [history-item]
+  (let [{:keys [index]} history-item]
+    [md-icon-button
+     :tooltip "Previous item from history"
+     :tooltip-position :above-center
+     :md-icon-name "zmdi-chevron-left"
+     :on-click #(dispatch [::events/from-history (dec index)])]))
+
+(defn history-next-component
+  [history-item]
+  (let [{:keys [index]} history-item]
+    [md-icon-button
+     :tooltip "Next item from history"
+     :tooltip-position :above-center
+     :md-icon-name "zmdi-chevron-right"
+     :on-click #(dispatch [::events/from-history (inc index)])]))
+
+(defn completions-component
   []
-  [h-box :gap "10px"
-   :children
-   [[md-icon-button
-     :tooltip "Backwards through edit history"
-     :md-icon-name "zmdi-arrow-left"
-     :size :smaller]
-    [md-icon-button
-     :tooltip "Forwards through edit history"
-     :md-icon-name "zmdi-arrow-right"
-     :size :smaller]
-    [md-icon-button
-     :tooltip "Search edit history"
-     :md-icon-name "zmdi-search"
-     :size :smaller]
-    [md-icon-button
-     :tooltip "Show / hide evaluation times"
-     :md-icon-name "zmdi-timer"
-     :size :smaller]]])
+  [label
+   :style {:color "lightgray"}
+   :label ""])
 
 (defn edit-panel
   [local-repl-editor]
-  (let [current-form (subscribe [::subs/current-form])]
+  (let [current-form (subscribe [::subs/current-form])
+        history-item (subscribe [::subs/history-item])]
     (fn []
-      [v-box :size "auto"
-       :children
-       [[box :size "auto" :style eval-panel-style
-         :child [edit-component (:name local-repl-editor)]]
-        [gap :size "5px"]
-        [h-box :align :center
+      (let [editor-name (:name local-repl-editor)]
+        [v-box :size "auto"
          :children
-         [[button
-           :label "Eval (or Cmd-Enter)" :tooltip "Send the form(s) for evaluation"
-           :class "btn-success"
-           :on-click #(dispatch [::events/eval @current-form])]
-          [gap :size "20px"]
-          [editor-actions]]]]])))
+         [[h-box :width "auto"
+           :children
+           [[box :justify :center
+             :style history-buttons-style
+             :child [history-previous-component @history-item]]
+            [box :justify :center
+             :style history-buttons-style
+             :child [history-next-component @history-item]]]]
+          [box :size "auto"
+           :style edit-panel-style
+           :child [edit-component editor-name]]
+          [gap :size "5px"]
+          [h-box
+           :children
+           [[button
+             :label "Eval (or Cmd-Enter)"
+             :tooltip "Send the form(s) for evaluation"
+             :class "btn-success"
+             :on-click #(dispatch [::events/eval @current-form])]
+            [gap :size "5px"]
+            ;; Only show if completions available
+            (when (= 1 0)
+              [box :size "auto" :style edit-panel-style
+               :child [completions-component]])]]]]))))
 
 (defn editors-panel
   [local-repl-editor network-repl-editors]
   (let [visible-count (some->> network-repl-editors
                                (filter (fn [[_ val]] (:visibility val)))
                                count)]
-    [v-box :size "auto"
+    [v-box :gap "5px" :size "auto"
      :children
      [(when (and visible-count (> visible-count 0))
         [other-editor/other-panels network-repl-editors])
@@ -121,41 +145,14 @@
    :children
    (vec (map other-editor/min-panel network-repl-editors))])
 
-(def doc-scroll-height "300px")
-
-(defonce doc-style {:font-family "Menlo, Lucida Console, Monaco, monospace"
-                    :position    "absolute"
-                    :z-index     100})
-
-(defonce doc-panel-style (merge (flex-child-style
-                                  (str "0 0 " doc-scroll-height))
-                                doc-style))
-
-(defn doc-panel
-  []
-  (let [doc-text  (subscribe [::subs/doc-text])
-        doc-show? (subscribe [::subs/doc-show?])]
-    (fn []
-      (when (and @doc-show? @doc-text)
-        [h-box :width "100%"
-         :children
-         [[button :class "btn-warning btn-xs"
-           :label "Clear docs"
-           :on-click #(dispatch [::events/show-doc-panel false])]
-          [gap :size "20px"]
-          [scroller
-           :height doc-scroll-height
-           :child [p {:style {:color            "rgb(95, 95, 81)"
-                              :background-color "rgba(255, 255, 255, 0.9)"}}
-                   (:docs @doc-text)]]]]))))
-
+;; TODO rounded panel shapes
 (defn main-panels
   [user-name]
   (let [network-repl-editors (subscribe [::subs/network-repl-editors])
         local-repl-editor    (subscribe [::subs/local-repl-editor])]
     (fn []
       [v-box :style {:position "absolute"
-                     :top      "5px"
+                     :top      "0px"
                      :bottom   "0px"
                      :width    "100%"}
        :children
@@ -182,15 +179,9 @@
           [gap :size "100px"]
           [h-box :align :center
            :children [[other-editor-row @network-repl-editors]]]]]
-        [h-split :splitter-size "2px"
+        [h-split :splitter-size "3px"
          :panel-1 [editors-panel @local-repl-editor @network-repl-editors]
          :panel-2 [v-box :style eval-panel-style
-                   :children
-                   [#_[h-box :style doc-panel-style
-                     :height doc-scroll-height :width "100%"
-                     :children [[doc-panel]]]
-                    [eval-view/eval-panel user-name]]]]
-        [gap :size "10px"]
-        [visual-history/history]
+                   :children [[eval-view/eval-panel user-name]]]]
         [gap :size "10px"]
         [status/status-bar user-name]]])))

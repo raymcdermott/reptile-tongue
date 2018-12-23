@@ -8,7 +8,8 @@
     [reagent.core :as reagent]
     [reptile.tongue.subs :as subs]
     [reptile.tongue.events :as events]
-    [reptile.tongue.code-mirror :as code-mirror]))
+    [reptile.tongue.code-mirror :as code-mirror]
+    [reptile.tongue.views.visual-history :as visual-history]))
 
 ; padding order is: top right bottom left
 (defonce eval-panel-style (merge (flex-child-style "1")
@@ -39,5 +40,8 @@
 
 (defn eval-panel
   [panel-name]
-  [box :size "auto" :style eval-component-style
-   :child [eval-component panel-name]])
+  [h-box :size "auto"
+   :children
+   [[box :style eval-component-style
+     :child [eval-component panel-name]]
+    [visual-history/editor-history]]])

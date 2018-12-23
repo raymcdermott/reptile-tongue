@@ -1,4 +1,4 @@
-{:deps    {org.clojure/clojure        {:mvn/version "1.10.0-RC5"}
+{:deps    {org.clojure/clojure        {:mvn/version "1.10.0"}
 
            org.clojure/tools.logging  {:mvn/version "0.4.0"}
            com.taoensso/sente         {:mvn/version "1.12.0"}
@@ -7,6 +7,8 @@
 
            re-frame                   {:mvn/version "0.10.6"}
            re-com                     {:mvn/version "2.3.0"}
+
+           fipp                       {:mvn/version "0.6.14"}
 
            cljsjs/codemirror          {:mvn/version "5.31.0-0"}
            cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}
