@@ -51,7 +51,6 @@
         args       (:clojure.spec.alpha/args data)
         spec-fails (and problems (pred-fails problems))]
     (when-let [problem (or spec-fails cause)]
-      (println :problem problem)
       (str bugs problem))))
 
 (defn format-response
