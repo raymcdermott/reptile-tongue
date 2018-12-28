@@ -8,12 +8,11 @@
            re-frame                   {:mvn/version "0.10.6"}
            re-com                     {:mvn/version "2.3.0"}
 
-           fipp                       {:mvn/version "0.6.14"}
-
            cljsjs/codemirror          {:mvn/version "5.31.0-0"}
            cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}
 
-           reptile-body               {:local/root "/opt/reptile/shared/reptile-body"}}
+           reptile-body               {:git/url "https://github.com/raymcdermott/reptile-body.git"
+                                       :sha     "be49222139979ce6c8d769d3f75e6c099f86278c"}}
 
  :aliases {:fig  {:extra-paths ["resources" "target"]
                   :extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.439"}
@@ -21,7 +20,7 @@
                                 com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
                   :main-opts   ["-m" "figwheel.main"]}
            :repl {:jvm-opts    ["-Xmx1g" "-Xms1g"]
-                  :extra-paths ["dev" "/opt/reptile/shared/reptile-body/dev"]
+                  :extra-paths ["dev"]
                   :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
                   :main-opts   ["-i" "@reptile/start_reptile.clj"
                                 "-m" "figwheel.main" "-b" "dev" "-r"]}

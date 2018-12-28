@@ -45,6 +45,12 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared
 
 ## Development
 
+### Running via the REPL:
+
+```
+clojure -A:fig:repl
+```
+
 ### Run application:
 
 ```
@@ -64,6 +70,23 @@ The location of the back-end server is configurable.
 The name of the server can be set in the `min.cljs.edn` by changing `reptile.tongue.config/TAIL_SERVER`
 
 Please also checkout the [REPtiLE configuration](https://github.com/raymcdermott/reptile-tail) options
+
+## Local deps.edn configuration
+
+Add some entries to the `aliases` section of `~/.clojure/deps.edn` similar to these:
+
+```clojure
+:aliases {
+  :reptile/local {:override-deps {reptile-body {:local/root "/Users/your-name/dev/reptile-house/body"}}}
+  :reptile/paths {:extra-paths ["/Users/your-name/dev/reptile-house/body/dev"]}
+}
+```
+
+And then start it from the REPL:
+
+```
+clj -A:fig:reptile/local:reptile/paths:repl
+```
 
 ## Production Build
 
