@@ -1,7 +1,7 @@
 {:deps    {org.clojure/clojure        {:mvn/version "1.10.0"}
 
            org.clojure/tools.logging  {:mvn/version "0.4.0"}
-           com.taoensso/sente         {:mvn/version "1.12.0"}
+           com.taoensso/sente         {:mvn/version "1.13.1"}
            com.taoensso/timbre        {:mvn/version "4.10.0"}
            com.cognitect/transit-cljs {:mvn/version "0.8.256"}
 
@@ -9,21 +9,33 @@
            re-com                     {:mvn/version "2.3.0"}
 
            cljsjs/codemirror          {:mvn/version "5.31.0-0"}
-           cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}
+           cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}}
 
-           reptile-body               {:git/url "https://github.com/raymcdermott/reptile-body.git"
-                                       :sha     "be49222139979ce6c8d769d3f75e6c099f86278c"}}
+ :aliases {:fig       {:extra-paths ["resources" "target"]
+                       :extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.439"}
+                                     com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
+                                     com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+                       :main-opts   ["-m" "figwheel.main"]}
 
- :aliases {:fig  {:extra-paths ["resources" "target"]
-                  :extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.439"}
-                                com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
-                                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-                  :main-opts   ["-m" "figwheel.main"]}
-           :repl {:jvm-opts    ["-Xmx1g" "-Xms1g"]
-                  :extra-paths ["dev"]
-                  :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
-                  :main-opts   ["-i" "@reptile/start_reptile.clj"
-                                "-m" "figwheel.main" "-b" "dev" "-r"]}
-           :min  {:jvm-opts  ["-Xmx2g" "-Xms2g"]
-                  :main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
+           ;; Allow local override
+           :body      {:extra-deps {reptile-body
+                                    {:git/url "https://github.com/raymcdermott/reptile-body.git"
+                                     :sha     "8f103d3e53a1d31b0f5822e6be0b472f8eb0637f"}}}
 
+           ;; Allow local override
+           :body-path {:extra-paths ["../body/dev"]}
+
+           :dev       {:jvm-opts    ["-Xmx1g" "-Xms1g"]
+                       :extra-paths ["dev"]
+                       :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
+                       :main-opts   ["-i" "@reptile/start_reptile.clj"
+                                     "-m" "figwheel.main" "-b" "dev"]}
+
+           :repl      {:jvm-opts    ["-Xmx1g" "-Xms1g"]
+                       :extra-paths ["dev"]
+                       :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
+                       :main-opts   ["-i" "@reptile/start_reptile.clj"
+                                     "-m" "figwheel.main" "-b" "dev" "-r"]}
+
+           :min       {:jvm-opts  ["-Xmx2g" "-Xms2g"]
+                       :main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}

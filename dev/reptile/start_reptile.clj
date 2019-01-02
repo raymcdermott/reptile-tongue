@@ -1,5 +1,5 @@
 (ns reptile.start-reptile
-  (:use [reptile.reload-server]))
+  (:use [reptile.body.reload-server]))
 
 
 ;------------------- ************* -------------------
@@ -8,6 +8,6 @@
 ;
 ;------------------- ************* -------------------
 
-(boot-and-watch-fs! "/opt/reptile/shared/reptile-body/src"
+(boot-and-watch-fs! "/Users/ray/dev/reptile-house/body/src"
                     58885 "warm-blooded-lizards-rock")
 
