@@ -45,16 +45,16 @@ A [re-frame](https://github.com/Day8/re-frame) based SPA for the [REPtiLE shared
 
 ## Development
 
-### Running via the REPL:
+### Running with a REPL:
 
 ```
-clojure -A:fig:repl
+clojure -A:fig:repl:body:body-path
 ```
 
-### Run application:
+### Run application on the command line:
 
 ```
-clojure -A:fig:build
+clojure -A:fig:dev:body:body-path
 ```
 
 Figwheel will automatically push cljs changes to the browser.
@@ -77,15 +77,15 @@ Add some entries to the `aliases` section of `~/.clojure/deps.edn` similar to th
 
 ```clojure
 :aliases {
-  :reptile/local {:override-deps {reptile-body {:local/root "/Users/your-name/dev/reptile-house/body"}}}
-  :reptile/paths {:extra-paths ["/Users/your-name/dev/reptile-house/body/dev"]}
+  :body/local {:override-deps {reptile-body {:local/root "/Users/your-name/dev/reptile-house/body"}}}
+  :body/path {:extra-paths ["/Users/your-name/dev/reptile-house/body/dev"]}
 }
 ```
 
-And then start it from the REPL:
+And then run it from the command line:
 
 ```
-clj -A:fig:reptile/local:reptile/paths:repl
+clj -A:fig:dev:body/local:body/path
 ```
 
 ## Production Build
