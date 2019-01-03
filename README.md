@@ -1,8 +1,8 @@
-# TONGUE
+# Reptile Team REPL - UI
 
 <img align="left" src="https://github.com/raymcdermott/reptile-tongue/blob/master/resources/public/images/reptile-logo-yellow-transparent.png" width="100">
 
-This is the UI part of the [`reptile` shared REPL](https://github.com/raymcdermott/reptile-body). You use is to enter forms and see the results of evaluation. You can also watch your friends editing in real-time and share their REPL evaluations.
+Tongue is the UI part of the [`reptile` shared REPL](https://github.com/raymcdermott/reptile-body). You use it to enter forms and see the results of evaluation. You can also watch your friends editing in real-time and share their REPL evaluations.
 
 The technical implementation is a [re-frame](https://github.com/Day8/re-frame) based Single Page Application (SPA).
 
