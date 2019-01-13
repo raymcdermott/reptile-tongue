@@ -8,7 +8,10 @@
     [reptile.tongue.helpers :refer [js->cljs]]
     [reptile.tongue.ws :as ws]
     [reptile.tongue.db :as db]
-    [reptile.tongue.code-mirror :as code-mirror]))
+    [reptile.tongue.code-mirror :as code-mirror]
+    [taoensso.sente :as sente]))
+
+(def default-server-timeout 3000)
 
 ; --- Events ---
 (reg-event-db
@@ -20,6 +23,11 @@
   ::network-status
   (fn [db [_ status]]
     (assoc db :network-status status)))
+
+(reg-event-db
+  ::network-user-id
+  (fn [db [_ network-user-id]]
+    (assoc db :network-user-id network-user-id)))
 
 (defn pred-fails
   [problems]
@@ -136,7 +144,7 @@
       (ws/chsk-send! [:reptile/repl {:form   form
                                      :source source
                                      :forms  form}]
-                     (or (:timeout form) 3000)))))
+                     (or (:timeout form) default-server-timeout)))))
 
 (reg-event-fx
   ::eval
@@ -146,26 +154,54 @@
        ::send-repl-eval [:user form-to-eval]})))
 
 (reg-fx
+  ::get-team-data
+  (fn []
+    (ws/chsk-send! [:reptile/team-random-data]
+                   default-server-timeout
+                   (fn [reply]
+                     (if (and (sente/cb-success? reply))
+                       (re-frame/dispatch [::team-data reply])
+                       (js/alert "Cannot start the team"))))))
+
+(reg-event-fx
+  ::team-bootstrap
+  (fn [{:keys [db]}]
+    {:db (assoc db :team-defined false)
+     ::get-team-data []}))
+
+(reg-event-db
+  ::team-data
+  (fn [db [_ team-data]]
+    (assoc db :team-data team-data)))
+
+(reg-event-db
+  ::show-team-data
+  (fn [db [_ show-team-data]]
+    (assoc db :show-team-data show-team-data)))
+
+(reg-fx
   ::server-login
   (fn [{:keys [options timeout]}]
-    (ws/chsk-send! [:reptile/login options] (or timeout 3000)
-                   (fn [result]
-                     (if (= result :login-ok)
+    (ws/chsk-send! [:reptile/login options] (or timeout default-server-timeout)
+                   (fn [reply]
+                     (if (and (sente/cb-success? reply) (= reply :login-ok))
                        (re-frame/dispatch [::logged-in-user (:user options)])
                        (js/alert "Login failed"))))))
 
 (reg-event-fx
   ::login
-  (fn [cofx [_ login-options]]
-    {:db            (assoc (:db cofx) :proposed-user (:user login-options)
-                                      :observer (:observer login-options)
-                                      :user-name nil)
-     ::server-login {:options login-options}}))
+  (fn [{:keys [db]} [_ login-options]]
+    (let [network-user-id (:network-user-id db)]
+      {:db            (assoc db :proposed-user (:user login-options)
+                                :observer (:observer login-options)
+                                :user-name nil)
+       ::server-login {:options (assoc login-options
+                                  :network-user-id network-user-id)}})))
 
 (reg-fx
   ::server-logout
   (fn [{:keys [options timeout]}]
-    (ws/chsk-send! [:reptile/logout options] (or timeout 3000))))
+    (ws/chsk-send! [:reptile/logout options] (or timeout default-server-timeout))))
 
 (reg-event-fx
   ::logout
@@ -481,8 +517,9 @@
                                       {editor-key updated-repl-editor})]
       (assoc db :network-repl-editors network-repl-editors))))
 
-; repl-editors is supplied by the server. These transformations ensure that the same list
-; is maintained on the client when users are newly logged in or logged out.
+; repl-editors is supplied by the server. These transformations ensure that the same
+; list is maintained on the client when users are newly logged in or logged out.
+; Each repl-editor has a network-user-id provided by the server for each connection
 (reg-event-db
   ::repl-editors
   (fn [db [_ repl-editors]]

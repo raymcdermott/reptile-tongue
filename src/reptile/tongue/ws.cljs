@@ -5,12 +5,9 @@
     [taoensso.timbre :refer [tracef debugf infof warnf errorf]]
     [taoensso.sente :as sente :refer [cb-success?]]
     [taoensso.sente.packers.transit :as sente-transit]
-    [taoensso.timbre :as timbre]
-    [cljs.core.async]
+    ;    [cljs.core.async]
     [re-frame.core :as re-frame]
     [reptile.tongue.config :as config]))
-
-;(timbre/set-level! :trace)                                  ; Uncomment for more logging
 
 ; --- WS client ---
 (declare chsk ch-chsk chsk-send! chsk-state)
@@ -32,33 +29,33 @@
 (defmethod -event-msg-handler :chsk/state
   [{:keys [?data]}]
   (let [[_ new-state-map] (have vector? ?data)]
-    (re-frame/dispatch [:reptile.tongue.events/network-status (:open? new-state-map)])
-    (if (:first-open? new-state-map)
-      (println "Channel socket successfully established!: %s" new-state-map)
-      (println "Channel socket state change: %s" new-state-map))))
+    (re-frame/dispatch [:reptile.tongue.events/network-user-id (:uid new-state-map)])
+    (re-frame/dispatch [:reptile.tongue.events/network-status (:open? new-state-map)])))
 
 (defmethod -event-msg-handler :chsk/recv
   [{:keys [?data]}]
   (let [push-event (first ?data)
         push-data  (first (rest ?data))]
     (cond
-      (= push-event :fast-push/keystrokes)
+      (= push-event :reptile/keystrokes)
       (re-frame/dispatch [:reptile.tongue.events/network-repl-editor-form-update push-data])
 
-      (= push-event :fast-push/editors)
+      (= push-event :reptile/editors)
       (re-frame/dispatch [:reptile.tongue.events/repl-editors push-data])
 
-      (= push-event :fast-push/eval)
+      (= push-event :reptile/eval)
       (re-frame/dispatch [:reptile.tongue.events/eval-result push-data])
 
       (= push-event :chsk/ws-ping)
       :noop                                                 ; do reply
 
-      :else (println "Unhandled data push: %s" push-event))))
+      :else
+      (println "Unhandled data push: %s" push-event))))
 
+;; The WS connection is established ... get the team name and secret
 (defmethod -event-msg-handler :chsk/handshake
-  [{:keys [?data]}]
-  (println "Handshake: %s" ?data))
+  []
+  (re-frame/dispatch [:reptile.tongue.events/team-bootstrap]))
 
 (defonce router_ (atom nil))
 (defn stop-router! [] (when-let [stop-f @router_] (stop-f)))

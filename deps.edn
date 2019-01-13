@@ -11,31 +11,33 @@
            cljsjs/codemirror          {:mvn/version "5.31.0-0"}
            cljsjs/parinfer-codemirror {:mvn/version "1.4.1-2"}}
 
- :aliases {:fig       {:extra-paths ["resources" "target"]
-                       :extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.439"}
-                                     com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
-                                     com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
-                       :main-opts   ["-m" "figwheel.main"]}
+ :aliases {:fig         {:extra-paths ["resources" "target"]
+                         :extra-deps  {org.clojure/clojurescript       {:mvn/version "1.10.439"}
+                                       com.bhauman/figwheel-main       {:mvn/version "0.1.9"}
+                                       com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
+                         :main-opts   ["-m" "figwheel.main"]}
 
            ;; Allow local override
-           :body      {:extra-deps {reptile-body
-                                    {:git/url "https://github.com/raymcdermott/reptile-body.git"
-                                     :sha     "8f103d3e53a1d31b0f5822e6be0b472f8eb0637f"}}}
+           :body        {:extra-deps {reptile-body
+                                      {:git/url "https://github.com/raymcdermott/reptile-body.git"
+                                       :sha     "8f103d3e53a1d31b0f5822e6be0b472f8eb0637f"}}}
 
            ;; Allow local override
-           :body-path {:extra-paths ["../body/dev"]}
+           :body-path   {:extra-paths ["../body/dev"]}
 
-           :dev       {:jvm-opts    ["-Xmx1g" "-Xms1g"]
-                       :extra-paths ["dev"]
-                       :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
-                       :main-opts   ["-i" "@reptile/start_reptile.clj"
-                                     "-m" "figwheel.main" "-b" "dev"]}
+           ;; Only start the client
+           :repl        {:jvm-opts    ["-Xmx1g" "-Xms1g"]
+                         :extra-paths ["dev"]
+                         :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
+                         :main-opts   ["-m" "figwheel.main" "-b" "repl" "-r"]}
 
-           :repl      {:jvm-opts    ["-Xmx1g" "-Xms1g"]
-                       :extra-paths ["dev"]
-                       :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
-                       :main-opts   ["-i" "@reptile/start_reptile.clj"
-                                     "-m" "figwheel.main" "-b" "dev" "-r"]}
+           ;; Start the client and the server
+           ;; (requires :body and :body-path aliases or appropriate overrides)
+           :server-repl {:jvm-opts    ["-Xmx1g" "-Xms1g"]
+                         :extra-paths ["dev"]
+                         :extra-deps  {clojure-watch {:mvn/version "0.1.14"}}
+                         :main-opts   ["-i" "@reptile/start_reptile.clj"
+                                       "-m" "figwheel.main" "-b" "dev" "-r"]}
 
-           :min       {:jvm-opts  ["-Xmx2g" "-Xms2g"]
-                       :main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}
+           :min         {:jvm-opts  ["-Xmx2g" "-Xms2g"]
+                         :main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "min"]}}}

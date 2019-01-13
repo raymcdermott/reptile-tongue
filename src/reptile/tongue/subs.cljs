@@ -103,5 +103,16 @@
   (fn [db]
     (:doc-text db)))
 
+(reg-sub
+  ::team-data
+  (fn [db]
+    (:team-data db)))
+
+(reg-sub
+  ::show-team-data
+  (fn [db]
+    (:show-team-data db)))
+
+
 
 
