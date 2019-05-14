@@ -11,6 +11,7 @@
     [reptile.tongue.subs :as subs]
     [reptile.tongue.views.other-editor :as other-editor]
     [reptile.tongue.views.add-lib :as add-lib]
+    [reptile.tongue.views.show-team-data :as team]
     [reptile.tongue.views.eval :as eval-view]
     [reptile.tongue.views.status :as status]))
 
@@ -145,7 +146,6 @@
    :children
    (vec (map other-editor/min-panel network-repl-editors))])
 
-;; TODO rounded panel shapes
 (defn main-panels
   [user-name]
   (let [network-repl-editors (subscribe [::subs/network-repl-editors])
@@ -158,17 +158,17 @@
        :children
        [[h-box :height "20px" :style other-editor/other-editors-style
          :children
-         [[h-box :align :center :justify :start
-           :children
-           [[button :label "⏏️ Logout" :class "btn-default btn-sm"
-             :tooltip "Logout of the system"
-             :on-click #(dispatch [::events/logout])]]]
+         [[box :align :center :justify :start
+           :child
+           [button :label "⏏️ Logout" :class "btn-default btn-sm"
+            :tooltip "Logout of the system"
+            :on-click #(dispatch [::events/logout])]]
           [gap :size "10px"]
-          [h-box :align :center :justify :start
-           :children
-           [[:img {:alt   "reptile"
-                   :width "40px" :height "40px"
-                   :src   "/images/reptile-logo-gray-transparent.png"}]]]
+          [box :align :center :justify :start
+           :child
+           [:img {:alt   "reptile"
+                  :width "40px" :height "40px"
+                  :src   "/images/reptile-logo-gray-transparent.png"}]]
           [gap :size "10px"]
           [h-box :align :center
            :children
@@ -176,7 +176,14 @@
             [button :label "🛠 Add Library" :class "btn-default btn-sm"
              :tooltip "Dynamically add a dependency"
              :on-click #(dispatch [::events/show-add-lib-panel true])]]]
-          [gap :size "100px"]
+          [gap :size "10px"]
+          [h-box :align :center
+           :children
+           [[team/team-data-panel]
+            [button :label "👥 Team Data" :class "btn-default btn-sm"
+             :tooltip "Obtain team to data for others to join"
+             :on-click #(dispatch [::events/show-team-data true])]]]
+          [gap :size "50px"]
           [h-box :align :center
            :children [[other-editor-row @network-repl-editors]]]]]
         [h-split :splitter-size "3px"
